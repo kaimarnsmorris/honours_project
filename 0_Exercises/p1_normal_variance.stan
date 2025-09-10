@@ -8,7 +8,7 @@ parameters {
 }
 model {
   // Prior
-  sigma ~ uniform(0, A);
+  sigma ~ uniform(0.001, A);
   
   // Likelihood
   x ~ normal(0, sigma);
