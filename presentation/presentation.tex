@@ -6,27 +6,12 @@
 % ============================================================
 \documentclass[aspectratio=169,11pt]{beamer}
 
-% ---- Theme: clean, self-contained (no external packages) ----
-\usetheme{default}
-\usecolortheme{default}
-\setbeamertemplate{navigation symbols}{}   % no nav clutter
-\setbeamertemplate{itemize items}[circle]
-\setbeamertemplate{caption}{\raggedright\insertcaption\par}
-\definecolor{accent}{RGB}{16,78,139}        % deep blue
-\definecolor{floorcol}{RGB}{34,139,34}      % floor green (match figures)
-\setbeamercolor{frametitle}{fg=accent}
-\setbeamercolor{title}{fg=accent}
-\setbeamercolor{structure}{fg=accent}
-\setbeamerfont{frametitle}{series=\bfseries}
-\setbeamertemplate{frametitle}{\vspace{0.4em}\insertframetitle\par}
-% simple footline: slide number
-\setbeamertemplate{footline}{%
-  \hfill\usebeamerfont{page number in head/foot}%
-  \color{gray}\scriptsize\insertframenumber\,/\,\inserttotalframenumber\hspace*{1em}\vspace*{0.4em}}
-
-% ---- Optional upgrade (Overleaf): comment the theme block above and
-% uncomment below; compile with XeLaTeX for best fonts.
-% \usetheme{metropolis}
+% ---- Theme: metropolis (modern, clean; needs XeLaTeX/LuaLaTeX or Tectonic) ----
+\usetheme{metropolis}
+\metroset{numbering=fraction, progressbar=foot, block=fill}
+% accent colours reused by the TikZ diagram and the Bayes-floor references
+\definecolor{accent}{RGB}{16,78,139}
+\definecolor{floorcol}{RGB}{34,139,34}
 
 % ---- Maths ----
 \usepackage{amsmath,amssymb}
@@ -54,25 +39,15 @@
 \newcommand{\MC}{\mathrm{MC}}
 
 % ---- Title metadata ----
-\title{Variance Reduction for Training\\Neural Bayes Estimators}
+\title{Variance Reduction for Training Neural Bayes Estimators}
 \author{Kai Marns-Morris}
-\institute{The University of Western Australia}
+\institute{The University of Western Australia \\ \footnotesize Supervisors: Dr Michael Bertolacci \& A/Prof Edward Cripps}
 \date{Honours (BPhil) 2026}
 
 \begin{document}
 
 % ===== FRAME 1: TITLE =====
-\begin{frame}[plain]
-  \centering
-  \IfFileExists{figures/uwa.jpeg}{\includegraphics[height=0.16\textheight]{uwa.jpeg}\par\vspace{0.8em}}{}
-  {\usebeamercolor[fg]{title}\Large\bfseries Variance Reduction for Training\\[0.2em]Neural Bayes Estimators\par}
-  \vspace{1.4em}
-  {\large Kai Marns-Morris\par}
-  \vspace{1.0em}
-  {\footnotesize Supervisors: Dr Michael Bertolacci \quad A/Prof Edward Cripps\par}
-  \vspace{0.6em}
-  {\footnotesize The University of Western Australia \,\textbullet\, Honours (BPhil) 2026\par}
-\end{frame}
+\maketitle
 
 % ===== ACT 1: SETUP =====
 
@@ -103,7 +78,7 @@
   $\by_1 \rightarrow$ \fbox{MCMC} $\rightarrow p(\bt\given\by_1)$ \qquad
   $\by_2 \rightarrow$ \fbox{MCMC} $\rightarrow p(\bt\given\by_2)$ \qquad
   $\cdots$ \\[0.4em]
-  \textcolor{accent}{the same expensive computation, paid again every time}
+  \alert{the same expensive computation, paid again every time}
   \end{center}
 \end{frame}
 
@@ -118,7 +93,7 @@
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
     \node (y)   [draw, rounded corners, minimum height=9mm, minimum width=14mm] {$\by$ (data)};
-    \node (net) [draw, fill=accent!12, rounded corners, minimum height=14mm, minimum width=34mm, right=20mm of y] {network $\net$};
+    \node (net) [draw, fill=black!8, rounded corners, minimum height=14mm, minimum width=34mm, right=20mm of y] {network $\net$};
     \node (out) [right=20mm of net] {$\hat{\bt}$ (estimate)};
     \draw[->, thick] (y)  -- (net);
     \draw[->, thick] (net) -- (out);
@@ -136,7 +111,7 @@
   \begin{itemize}
     \item In practice this expectation is a \textbf{Monte Carlo average} over simulated draws.
     \item So the loss --- and the gradient that drives training --- is a \textbf{random quantity with variance}.
-    \item That variance comes from \emph{how we sample the loss}, not from the inference problem. \textcolor{accent}{So we can reduce it.}
+    \item That variance comes from \emph{how we sample the loss}, not from the inference problem. \alert{So we can reduce it.}
   \end{itemize}
 \end{frame}
 
@@ -151,7 +126,7 @@
   \end{itemize}
   \vspace{0.6em}
   \begin{center}\small
-  noisy draws \; $\rightarrow$ \; replace one coordinate by its exact mean \; $\rightarrow$ \; \textcolor{accent}{tighter estimate}
+  noisy draws \; $\rightarrow$ \; replace one coordinate by its exact mean \; $\rightarrow$ \; \alert{tighter estimate}
   \end{center}
   \vspace{0.4em}
   \footnotesize Statisticians call this \textbf{Rao--Blackwellisation}.
@@ -183,7 +158,7 @@
     \item For a linear network the same reduction carries through to the \textbf{fitted weights} $\hat{\bg}$ themselves.
   \end{itemize}
   \vspace{0.4em}
-  \begin{center}\textcolor{accent}{\bfseries For free, provably: never worse, usually better.}\end{center}
+  \begin{center}\alert{\textbf{For free, provably: never worse, usually better.}}\end{center}
 \end{frame}
 
 % --- FRAME 9: does it pay off? (empirical payoff) ---
@@ -206,7 +181,7 @@
 
 % --- FRAME 10: the contrast — importance sampling ---
 \begin{frame}{A contrasting lever: importance sampling}
-  {\small No conjugacy needed --- reshape the simulation distribution, then reweight back. \textcolor{accent}{The price: no guarantee.}}
+  {\small No conjugacy needed --- reshape the simulation distribution, then reweight back. \alert{The price: no guarantee.}}
   \vspace{0.4em}
   \begin{columns}[c]
     \begin{column}{0.54\textwidth}
@@ -235,7 +210,7 @@
   \end{tabular}
   \end{center}
   \vspace{0.8em}
-  \begin{center}\textcolor{accent}{Where conjugacy exists, Rao--Blackwell is the safer, stronger lever.}\end{center}
+  \begin{center}\alert{Where conjugacy exists, Rao--Blackwell is the safer, stronger lever.}\end{center}
 \end{frame}
 
 % >>> IS MODULE END <<<
@@ -249,25 +224,20 @@
     \item \textbf{Rao--Blackwellisation} is a cheap, reliable lever: a \emph{provable} cut in gradient variance, and real gains toward the Bayes floor.
   \end{itemize}
   \vspace{1.0em}
-  \begin{center}\usebeamercolor[fg]{title}\bfseries
-  Conjugacy --- the classical trick behind Gibbs sampling ---\\
-  is just as useful for training the estimators meant to replace it.
-  \end{center}
+  \begin{center}\alert{\textbf{Conjugacy --- the classical trick behind Gibbs sampling ---\\
+  is just as useful for training the estimators meant to replace it.}}\end{center}
 \end{frame}
 
 % ===== FRAME 13: THANKS =====
-\begin{frame}[plain]
-  \centering
-  {\usebeamercolor[fg]{title}\Large\bfseries Thank you\par}
-  \vspace{1em}
-  {\large Questions?\par}
-  \vspace{1.2em}
-  {\footnotesize Supervisors: Dr Michael Bertolacci \& A/Prof Edward Cripps\par}
+\begin{frame}[standout]
+  Thank you\\[0.3em]
+  {\large Questions?}
 \end{frame}
 
 % ===== BACKUP SLIDES (after Thanks; not counted in the 15 min) =====
+\appendix
 
-\begin{frame}{Backup: why the variance can only shrink}
+\begin{frame}[noframenumbering]{Backup: why the variance can only shrink}
   Write the standard gradient $g$ and condition on $(\tau,\by)$. By the law of total variance,
   \[
     \Var(g) = \underbrace{\Var\big(\E[g\given\tau,\by]\big)}_{\Var(\nabla_{\RB})} + \underbrace{\E\big[\Var(g\given\tau,\by)\big]}_{\succeq\,0}.
@@ -275,15 +245,15 @@
   The second term is positive semi-definite, so $\Var(\nabla_{\RB}) \preceq \Var(g)$.
 \end{frame}
 
-\begin{frame}{Backup: RB vs MC across the whole grid}
+\begin{frame}[noframenumbering]{Backup: RB vs MC across the whole grid}
   \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_curves.png}\end{center}
 \end{frame}
 
-\begin{frame}{Backup: convergence vs total samples seen}
+\begin{frame}[noframenumbering]{Backup: convergence vs total samples seen}
   \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_vs_samples.png}\end{center}
 \end{frame}
 
-\begin{frame}{Backup: importance-sampling diagnostics}
+\begin{frame}[noframenumbering]{Backup: importance-sampling diagnostics}
   \begin{columns}[c]
     \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{grad_variance.png}\end{column}
     \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{region_breakdown.png}\end{column}
@@ -292,7 +262,7 @@
   {\scriptsize Left: per-minibatch gradient variance blows up as the proposal is pushed away from uniform. Right: the error lives at the boundary, which the proposals do not target.}
 \end{frame}
 
-\begin{frame}{Backup: models \& architectures}
+\begin{frame}[noframenumbering]{Backup: models \& architectures}
   \begin{itemize}
     \item \textbf{RB study:} Bayesian linear regression, $\bt=(\tau,\bb)$; $\bb$ (coefficients) integrated out, $\tau\sim\mathrm{U}(0.01,1)$ sampled; multilayer perceptron; Gibbs sampler for the Bayes floor $L^*$.
     \item \textbf{IS study:} AR(1) process, $T=100$; parameters $(\rho,\sigma)$; recurrent (GRU) network; $\mathrm{Beta}(\alpha,\alpha)$ proposal family on $\rho$.
