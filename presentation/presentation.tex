@@ -1,0 +1,91 @@
+% ============================================================
+%  Honours presentation — Kai Marns-Morris
+%  Variance Reduction for Training Neural Bayes Estimators
+%  Build: pdflatex presentation.tex   (twice, for the slide numbers)
+%  Portable: no external fonts, no metropolis, pdflatex-safe.
+% ============================================================
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% ---- Theme: clean, self-contained (no external packages) ----
+\usetheme{default}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}   % no nav clutter
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+\definecolor{accent}{RGB}{16,78,139}        % deep blue
+\definecolor{floorcol}{RGB}{34,139,34}      % floor green (match figures)
+\setbeamercolor{frametitle}{fg=accent}
+\setbeamercolor{title}{fg=accent}
+\setbeamercolor{structure}{fg=accent}
+\setbeamerfont{frametitle}{series=\bfseries}
+\setbeamertemplate{frametitle}{\vspace{0.4em}\insertframetitle\par}
+% simple footline: slide number
+\setbeamertemplate{footline}{%
+  \hfill\usebeamerfont{page number in head/foot}%
+  \color{gray}\scriptsize\insertframenumber\,/\,\inserttotalframenumber\hspace*{1em}\vspace*{0.4em}}
+
+% ---- Optional upgrade (Overleaf): comment the theme block above and
+% uncomment below; compile with XeLaTeX for best fonts.
+% \usetheme{metropolis}
+
+% ---- Maths ----
+\usepackage{amsmath,amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+
+% ---- Notation macros (mirror the thesis) ----
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\given}{\,|\,}
+\newcommand{\bt}{\bm{\theta}}
+\newcommand{\by}{\mathbf{y}}
+\newcommand{\bg}{\bm{\gamma}}
+\newcommand{\bb}{\bm{\beta}}
+\newcommand{\net}{\hat{\bm{\theta}}_{\bm{\gamma}}}
+\newcommand{\RB}{\mathrm{RB}}
+\newcommand{\MC}{\mathrm{MC}}
+
+% ---- Title metadata ----
+\title{Variance Reduction for Training\\Neural Bayes Estimators}
+\author{Kai Marns-Morris}
+\institute{The University of Western Australia}
+\date{Honours (BPhil) 2026}
+
+\begin{document}
+
+% ===== FRAME 1: TITLE =====
+\begin{frame}[plain]
+  \centering
+  \IfFileExists{figures/uwa.jpeg}{\includegraphics[height=0.16\textheight]{uwa.jpeg}\par\vspace{0.8em}}{}
+  {\usebeamercolor[fg]{title}\Large\bfseries Variance Reduction for Training\\[0.2em]Neural Bayes Estimators\par}
+  \vspace{1.4em}
+  {\large Kai Marns-Morris\par}
+  \vspace{1.0em}
+  {\footnotesize Supervisors: Dr Michael Bertolacci \quad A/Prof Edward Cripps\par}
+  \vspace{0.6em}
+  {\footnotesize The University of Western Australia \,\textbullet\, Honours (BPhil) 2026\par}
+\end{frame}
+
+% ===== ACT 1: SETUP (frames 2-5 inserted here) =====
+
+% ===== ACT 2: RAO-BLACKWELL CORE (frames 6-9 inserted here) =====
+
+% >>> IS MODULE START (frames 10-11 — remove this whole block if tight for time) <<<
+% >>> IS MODULE END <<<
+
+% ===== ACT 3: CLOSE (frame 12 inserted here) =====
+
+% ===== FRAME 13: THANKS =====
+\begin{frame}[plain]
+  \centering
+  {\usebeamercolor[fg]{title}\Large\bfseries Thank you\par}
+  \vspace{1em}
+  {\large Questions?\par}
+  \vspace{1.2em}
+  {\footnotesize Supervisors: Dr Michael Bertolacci \& A/Prof Edward Cripps\par}
+\end{frame}
+
+% ===== BACKUP SLIDES (after Thanks; not counted in the 15 min) =====
+
+\end{document}
