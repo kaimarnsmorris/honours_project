@@ -231,7 +231,20 @@
 
 % >>> IS MODULE END <<<
 
-% ===== ACT 3: CLOSE (frame 12 inserted here) =====
+% ===== ACT 3: CLOSE =====
+
+% --- FRAME 12: takeaway ---
+\begin{frame}{Takeaway}
+  \begin{itemize}
+    \item Training a neural Bayes estimator is Monte Carlo --- so the Monte Carlo variance-reduction toolbox applies to \emph{training}.
+    \item \textbf{Rao--Blackwellisation} is a cheap, reliable lever: a \emph{provable} cut in gradient variance, and real gains toward the Bayes floor.
+  \end{itemize}
+  \vspace{1.0em}
+  \begin{center}\usebeamercolor[fg]{title}\bfseries
+  Conjugacy --- the classical trick behind Gibbs sampling ---\\
+  is just as useful for training the estimators meant to replace it.
+  \end{center}
+\end{frame}
 
 % ===== FRAME 13: THANKS =====
 \begin{frame}[plain]
@@ -244,5 +257,37 @@
 \end{frame}
 
 % ===== BACKUP SLIDES (after Thanks; not counted in the 15 min) =====
+
+\begin{frame}{Backup: why the variance can only shrink}
+  Write the standard gradient $g$ and condition on $(\tau,\by)$. By the law of total variance,
+  \[
+    \Var(g) = \underbrace{\Var\big(\E[g\given\tau,\by]\big)}_{\Var(\nabla_{\RB})} + \underbrace{\E\big[\Var(g\given\tau,\by)\big]}_{\succeq\,0}.
+  \]
+  The second term is positive semi-definite, so $\Var(\nabla_{\RB}) \preceq \Var(g)$.
+\end{frame}
+
+\begin{frame}{Backup: RB vs MC across the whole grid}
+  \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_curves.png}\end{center}
+\end{frame}
+
+\begin{frame}{Backup: convergence vs total samples seen}
+  \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_vs_samples.png}\end{center}
+\end{frame}
+
+\begin{frame}{Backup: importance sampling --- gradient variance \& proposals}
+  \begin{columns}[c]
+    \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{grad_variance.png}\end{column}
+    \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{region_breakdown.png}\end{column}
+  \end{columns}
+  \vspace{0.3em}
+  {\scriptsize Left: per-minibatch gradient variance blows up as the proposal is pushed away from uniform. Right: the error lives at the boundary, which the proposals do not target.}
+\end{frame}
+
+\begin{frame}{Backup: models \& architectures}
+  \begin{itemize}
+    \item \textbf{RB study:} Bayesian linear regression, $\bt=(\tau,\bb)$; $\bb$ (coefficients) integrated out, $\tau\sim\mathrm{U}(0.01,1)$ sampled; multilayer perceptron; Gibbs sampler for the Bayes floor $L^*$.
+    \item \textbf{IS study:} AR(1) process, $T=100$; parameters $(\rho,\sigma)$; recurrent (GRU) network; $\mathrm{Beta}(\alpha,\alpha)$ proposal family on $\rho$.
+  \end{itemize}
+\end{frame}
 
 \end{document}
