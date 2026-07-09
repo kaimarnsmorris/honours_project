@@ -126,7 +126,70 @@
   \end{itemize}
 \end{frame}
 
-% ===== ACT 2: RAO-BLACKWELL CORE (frames 6-9 inserted here) =====
+% ===== ACT 2: RAO-BLACKWELL CORE =====
+
+% --- FRAME 6: a trick for killing Monte Carlo noise (intro the intuition) ---
+\begin{frame}{A trick for killing Monte Carlo noise}
+  \begin{itemize}
+    \item You are estimating an average by sampling. Suppose part of it you can compute \textbf{exactly}.
+    \item Then replace that sampled piece by its \textbf{exact conditional mean} instead of drawing it.
+    \item Averaging out a random draw can only \emph{remove} variance --- never add it.
+  \end{itemize}
+  \vspace{0.6em}
+  \begin{center}\small
+  noisy draws \; $\rightarrow$ \; replace one coordinate by its exact mean \; $\rightarrow$ \; \textcolor{accent}{tighter estimate}
+  \end{center}
+  \vspace{0.4em}
+  \footnotesize Statisticians call this \textbf{Rao--Blackwellisation}.
+\end{frame}
+
+% --- FRAME 7: the Rao-Blackwellised loss ---
+\begin{frame}{The Rao--Blackwellised loss}
+  Split the parameters $\bt = (\tau, \bb)$. Suppose $\bb$ has a \textbf{tractable conditional posterior} given $(\tau,\by)$ (here: conjugate).
+  \[
+    \text{sampled target } \bb
+    \;\;\longrightarrow\;\;
+    \E[\,\bb \given \tau, \by\,] \quad(\text{its conditional posterior mean})
+  \]
+  \begin{itemize}
+    \item We integrate $\bb$ out of the loss analytically instead of sampling it.
+    \item The leftover conditional variance is a \textbf{constant} --- it drops out of the gradient.
+  \end{itemize}
+\end{frame}
+
+% --- FRAME 8: THE GUARANTEE (peak) ---
+\begin{frame}{The guarantee}
+  The Rao--Blackwellised gradient is a \textbf{conditional average} of the standard one. The law of total variance then gives
+  \[
+    \Var(\nabla_{\RB}) \;\preceq\; \Var(\nabla_{\MC})
+    \qquad(\text{positive semi-definite gap}).
+  \]
+  \begin{itemize}
+    \item It can \textbf{never} increase the gradient variance --- for \emph{any} model, \emph{any} architecture.
+    \item For a linear network the same reduction carries through to the \textbf{fitted weights} $\hat{\bg}$ themselves.
+  \end{itemize}
+  \vspace{0.4em}
+  \begin{center}\textcolor{accent}{\bfseries For free, provably: never worse, usually better.}\end{center}
+\end{frame}
+
+% --- FRAME 9: does it pay off? (empirical payoff) ---
+\begin{frame}{Does it pay off? Bayesian linear regression}
+  \begin{columns}[T]
+    \begin{column}{0.62\textwidth}
+      \includegraphics[width=\textwidth]{rb_hero.png}\\
+      {\scriptsize MC (blue) vs RB (orange) vs Bayes floor $L^*$ (green), by batch size (4, 16, 64, 256; left$\to$right).}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \small Integrate out $\bb$; Gibbs gives the Bayes-optimal floor $L^*$.
+      \vspace{0.6em}
+      \begin{itemize}
+        \item lower loss in \textbf{every} grid cell
+        \item closes \textbf{$\sim$half} ($52\%$) the gap to $L^*$
+        \item matches the standard NBE at \textbf{$\tfrac14$ the batch size}
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
 
 % >>> IS MODULE START (frames 10-11 — remove this whole block if tight for time) <<<
 % >>> IS MODULE END <<<
