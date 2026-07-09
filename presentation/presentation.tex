@@ -192,6 +192,43 @@
 \end{frame}
 
 % >>> IS MODULE START (frames 10-11 — remove this whole block if tight for time) <<<
+
+% --- FRAME 10: the contrast — importance sampling ---
+\begin{frame}{A contrasting lever: importance sampling}
+  No conjugacy needed --- reshape the simulation distribution, then reweight back to the same objective. \textcolor{accent}{The price: no guarantee.}
+  \vspace{0.4em}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \includegraphics[width=\textwidth]{gibbs_vs_nn.png}\\
+      {\scriptsize AR(1)+GRU already tracks the Gibbs (Bayes) reference across the prior.}
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \includegraphics[width=\textwidth]{ess_vs_alpha.png}\\
+      {\scriptsize Push the proposal hard and the effective sample size collapses.}
+    \end{column}
+  \end{columns}
+  \vspace{0.3em}
+  \footnotesize Little error left to recover, and aggressive reweighting only adds noise.
+\end{frame}
+
+% --- FRAME 11: what separates them ---
+\begin{frame}{What separates the two techniques}
+  \begin{center}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lcc}
+    \toprule
+     & \textbf{Rao--Blackwell} & \textbf{Importance sampling} \\
+    \midrule
+    needs & a conjugate block & nothing special \\
+    variance guarantee & \textbf{yes, always} & none \\
+    carries to fitted weights & \textbf{yes} (linear net) & no \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.8em}
+  \begin{center}\textcolor{accent}{Where conjugacy exists, Rao--Blackwell is the safer, stronger lever.}\end{center}
+\end{frame}
+
 % >>> IS MODULE END <<<
 
 % ===== ACT 3: CLOSE (frame 12 inserted here) =====
