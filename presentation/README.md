@@ -14,9 +14,15 @@ Beamer slide deck for the honours thesis talk *Variance Reduction for Training N
 
 ## Compile
 
-There is **no LaTeX toolchain on this machine** (MiKTeX was removed), so compile one of these ways.
+The deck has been **compiled and visually checked** end-to-end with Tectonic. Figures resolve via `\graphicspath{{figures/}}`, so any of these routes work.
 
-**Overleaf (easiest):**
+**Tectonic (already set up on this machine, verified):**
+```
+conda run -n tex tectonic presentation.tex
+```
+Produces `presentation.pdf`. Tectonic auto-fetches the LaTeX packages it needs and runs the extra pass for the slide numbers. (The `tex` conda env was created with `conda create -n tex -c conda-forge tectonic`; the first compile downloads a package bundle.)
+
+**Overleaf (easiest to edit):**
 1. New Project → Upload, and add `presentation.tex` plus the whole `figures/` folder.
 2. Menu → Compiler → **pdfLaTeX** (leave it here for the default theme).
 3. Recompile. Run it twice if the slide-number footer (`n / N`) looks wrong on the first pass.

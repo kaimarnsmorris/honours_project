@@ -37,6 +37,9 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta}
 
+% ---- Graphics (beamer already loads graphicx) ----
+\graphicspath{{figures/}}
+
 % ---- Notation macros (mirror the thesis) ----
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Var}{\operatorname{Var}}
@@ -185,20 +188,17 @@
 
 % --- FRAME 9: does it pay off? (empirical payoff) ---
 \begin{frame}{Does it pay off? Bayesian linear regression}
-  \begin{columns}[T]
-    \begin{column}{0.62\textwidth}
-      \includegraphics[width=\textwidth]{rb_hero.png}\\
-      {\scriptsize MC (blue) vs RB (orange) vs Bayes floor $L^*$ (green), by batch size (4, 16, 64, 256; left$\to$right).}
-    \end{column}
-    \begin{column}{0.36\textwidth}
-      \small Integrate out $\bb$; Gibbs gives the Bayes-optimal floor $L^*$.
-      \vspace{0.6em}
-      \begin{itemize}
-        \item lower loss in \textbf{every} grid cell
-        \item closes \textbf{$\sim$half} ($52\%$) the gap to $L^*$
-        \item matches the standard NBE at \textbf{$\tfrac14$ the batch size}
-      \end{itemize}
-    \end{column}
+  {\small Integrate out $\bb$; a Gibbs sampler gives the Bayes-optimal floor $L^*$.}
+  \vspace{0.2em}
+  \begin{center}
+    \includegraphics[width=0.97\textwidth]{rb_hero.png}\\[0.2em]
+    {\scriptsize MC (blue) vs RB (orange) vs Bayes floor $L^*$ (green) --- across batch sizes 4, 16, 64, 256.}
+  \end{center}
+  \vspace{0.5em}
+  \begin{columns}[t]
+    \begin{column}{0.32\textwidth}\centering\small lower loss in\\ \textbf{every} grid cell\end{column}
+    \begin{column}{0.32\textwidth}\centering\small closes \textbf{$\sim$half} ($52\%$)\\ of the gap to $L^*$\end{column}
+    \begin{column}{0.32\textwidth}\centering\small matches the standard NBE\\ at \textbf{$\tfrac14$ the batch size}\end{column}
   \end{columns}
 \end{frame}
 
@@ -206,20 +206,18 @@
 
 % --- FRAME 10: the contrast — importance sampling ---
 \begin{frame}{A contrasting lever: importance sampling}
-  No conjugacy needed --- reshape the simulation distribution, then reweight back to the same objective. \textcolor{accent}{The price: no guarantee.}
+  {\small No conjugacy needed --- reshape the simulation distribution, then reweight back. \textcolor{accent}{The price: no guarantee.}}
   \vspace{0.4em}
-  \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      \includegraphics[width=\textwidth]{gibbs_vs_nn.png}\\
-      {\scriptsize AR(1)+GRU already tracks the Gibbs (Bayes) reference across the prior.}
+  \begin{columns}[c]
+    \begin{column}{0.54\textwidth}
+      \centering\includegraphics[width=\textwidth]{gibbs_vs_nn.png}\\[0.2em]
+      {\scriptsize The GRU already tracks the Gibbs (Bayes) reference across the prior --- \textbf{little error left to recover}.}
     \end{column}
-    \begin{column}{0.43\textwidth}
-      \includegraphics[width=\textwidth]{ess_vs_alpha.png}\\
-      {\scriptsize Push the proposal hard and the effective sample size collapses.}
+    \begin{column}{0.44\textwidth}
+      \centering\includegraphics[width=0.9\textwidth]{ess_vs_alpha.png}\\[0.2em]
+      {\scriptsize Push the proposal hard and the effective sample size \textbf{collapses} --- only adding noise.}
     \end{column}
   \end{columns}
-  \vspace{0.3em}
-  \footnotesize Little error left to recover, and aggressive reweighting only adds noise.
 \end{frame}
 
 % --- FRAME 11: what separates them ---
@@ -285,7 +283,7 @@
   \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_vs_samples.png}\end{center}
 \end{frame}
 
-\begin{frame}{Backup: importance sampling --- gradient variance \& proposals}
+\begin{frame}{Backup: importance-sampling diagnostics}
   \begin{columns}[c]
     \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{grad_variance.png}\end{column}
     \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{region_breakdown.png}\end{column}
