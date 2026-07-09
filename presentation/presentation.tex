@@ -33,6 +33,10 @@
 \usepackage{bm}
 \usepackage{booktabs}
 
+% ---- Diagrams ----
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+
 % ---- Notation macros (mirror the thesis) ----
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Var}{\operatorname{Var}}
@@ -107,9 +111,16 @@
     \item Approximate that function \emph{once} with a neural network $\net(\by)$, trained on simulated pairs $(\bt,\by)$.
     \item Deployment for any new dataset is a \textbf{single forward pass}.
   \end{itemize}
-  \vspace{0.8em}
-  \begin{center}\small
-  simulate $(\bt,\by)$ $\rightarrow$ \fbox{train $\net$ once} $\rightarrow$ new $\by \rightarrow$ \fbox{forward pass} $\rightarrow \hat{\bt}$
+  \vspace{0.4em}
+  \begin{center}
+  \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
+    \node (y)   [draw, rounded corners, minimum height=9mm, minimum width=14mm] {$\by$ (data)};
+    \node (net) [draw, fill=accent!12, rounded corners, minimum height=14mm, minimum width=34mm, right=20mm of y] {network $\net$};
+    \node (out) [right=20mm of net] {$\hat{\bt}$ (estimate)};
+    \draw[->, thick] (y)  -- (net);
+    \draw[->, thick] (net) -- (out);
+    \node[below=5mm of net, text=gray, font=\footnotesize] {trained once on simulated $(\bt,\by)$ pairs};
+  \end{tikzpicture}
   \end{center}
 \end{frame}
 
