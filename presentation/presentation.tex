@@ -67,7 +67,64 @@
   {\footnotesize The University of Western Australia \,\textbullet\, Honours (BPhil) 2026\par}
 \end{frame}
 
-% ===== ACT 1: SETUP (frames 2-5 inserted here) =====
+% ===== ACT 1: SETUP =====
+
+% --- FRAME 2: the talk in one breath (roadmap = hook) ---
+\begin{frame}{The problem, in one breath}
+  \begin{itemize}
+    \item Bayesian inference usually means re-running a sampler \emph{from scratch} for every new dataset.
+    \item[] \vspace{0.3em}
+    \item \textbf{Neural Bayes estimators} avoid that: train once, then predict in a single forward pass.
+    \item[] \vspace{0.3em}
+    \item Training them is \emph{itself} a Monte Carlo computation --- so can classic \textbf{variance reduction} make training cheaper?
+    \item[] \vspace{0.3em}
+    \item[$\Rightarrow$] One technique comes with a \textbf{guarantee}; a second is more general but does not.
+    % SHORT VERSION (if IS is cut): replace the line above with:
+    % \item[$\Rightarrow$] One technique gives a \textbf{provable} reduction. That is today's story.
+  \end{itemize}
+\end{frame}
+
+% --- FRAME 3: inference is expensive AND repeated ---
+\begin{frame}{Bayesian inference is expensive --- and repeated}
+  \begin{itemize}
+    \item For each dataset $\by$ we want the posterior $p(\bt \given \by)$.
+    \item The standard tool --- MCMC --- is accurate but must be \textbf{re-run from scratch} for every new $\by$.
+  \end{itemize}
+  \vspace{0.8em}
+  \begin{center}
+  \small
+  $\by_1 \rightarrow$ \fbox{MCMC} $\rightarrow p(\bt\given\by_1)$ \qquad
+  $\by_2 \rightarrow$ \fbox{MCMC} $\rightarrow p(\bt\given\by_2)$ \qquad
+  $\cdots$ \\[0.4em]
+  \textcolor{accent}{the same expensive computation, paid again every time}
+  \end{center}
+\end{frame}
+
+% --- FRAME 4: neural Bayes estimators amortise it ---
+\begin{frame}{Neural Bayes estimators: pay once}
+  \begin{itemize}
+    \item Under squared-error loss the best estimator is the \textbf{posterior mean} --- a fixed function of the data.
+    \item Approximate that function \emph{once} with a neural network $\net(\by)$, trained on simulated pairs $(\bt,\by)$.
+    \item Deployment for any new dataset is a \textbf{single forward pass}.
+  \end{itemize}
+  \vspace{0.8em}
+  \begin{center}\small
+  simulate $(\bt,\by)$ $\rightarrow$ \fbox{train $\net$ once} $\rightarrow$ new $\by \rightarrow$ \fbox{forward pass} $\rightarrow \hat{\bt}$
+  \end{center}
+\end{frame}
+
+% --- FRAME 5: the pivot — training is Monte Carlo ---
+\begin{frame}{The observation this thesis starts from}
+  Training minimises the \textbf{Bayes risk}
+  \[
+    L(\bg) \;=\; \E_{\bt,\by}\!\big[\, \lVert \bt - \net(\by) \rVert^2 \,\big].
+  \]
+  \begin{itemize}
+    \item In practice this expectation is a \textbf{Monte Carlo average} over simulated draws.
+    \item So the loss --- and the gradient that drives training --- is a \textbf{random quantity with variance}.
+    \item That variance comes from \emph{how we sample the loss}, not from the inference problem. \textcolor{accent}{So we can reduce it.}
+  \end{itemize}
+\end{frame}
 
 % ===== ACT 2: RAO-BLACKWELL CORE (frames 6-9 inserted here) =====
 
