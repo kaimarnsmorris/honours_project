@@ -139,24 +139,21 @@
     \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
   \end{tikzpicture}
   \end{center}
+  \vspace{0.2em}
   \begin{itemize}
-    \item 
     \item Accurate and general --- but must be \alert{re-run from scratch for every new $\by$}, and can be slow.
+    \item Do inference for \emph{many} datasets and you pay that cost \emph{every time}.
   \end{itemize}
 \end{frame}
 
 % --- S3: NBE + amortisation (box v3 + cost plot) ---
 \begin{frame}{Filling the box (2): a neural network}
-  \begin{itemize}
-    \item Training data is free: \textbf{simulate} pairs $(\bt,\by)$ from the model, and adjust $\bg$ so $\net(\by)\approx\bt$.
-    \item Then each new dataset is a single \textbf{forward pass} --- the cost is \alert{amortised}.
-  \end{itemize}
-  \vspace{-0.1em}
+  \vspace{-0.2em}
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
     \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=16mm] {$\by$};
     \node (map) [draw, fill=black!8, rounded corners, minimum width=48mm, minimum height=30mm, right=13mm of y] {};
-    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
+    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=22mm, right=13mm of map] {$\net(\by)$};
     \draw[->, thick] (y) -- (map);
     \draw[->, thick] (map) -- (out);
     % neural network inside the map box
@@ -176,6 +173,12 @@
     \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
   \end{tikzpicture}
   \end{center}
+  \vspace{0.2em}
+  \begin{itemize}
+    \item A \textbf{neural network} $\net(\by)$, trained \emph{once} --- a \emph{neural Bayes estimator}.
+    \item Training data is free: \textbf{simulate} pairs $(\bt,\by)$ and adjust $\bg$ so $\net(\by)\approx\bt$.
+    \item Then each new dataset is a single \textbf{forward pass} --- the cost is \alert{amortised}.
+  \end{itemize}
 \end{frame}
 
 % --- S4: does it work? (normal example) ---

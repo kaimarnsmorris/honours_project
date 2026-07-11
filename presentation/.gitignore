@@ -1,0 +1,11 @@
+# LaTeX / Tectonic build artifacts (keep presentation.pdf tracked)
+*.log
+*.synctex.gz
+*.aux
+*.out
+*.toc
+*.nav
+*.snm
+*.vrb
+*.fls
+*.fdb_latexmk

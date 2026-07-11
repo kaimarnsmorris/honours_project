@@ -1,0 +1,16 @@
+{
+  "latex-workshop.latex.tools": [
+    {
+      "name": "tectonic",
+      "command": "C:/Users/kaima/miniconda3/envs/tex/Library/bin/tectonic.exe",
+      "args": ["--synctex", "--keep-logs", "%DOC%.tex"]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    { "name": "tectonic", "tools": ["tectonic"] }
+  ],
+  "latex-workshop.latex.recipe.default": "tectonic",
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.outDir": "%DIR%",
+  "latex-workshop.view.pdf.viewer": "tab"
+}
