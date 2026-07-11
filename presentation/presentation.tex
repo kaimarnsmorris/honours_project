@@ -63,13 +63,35 @@
 % ===================================================================
 
 % --- S1: Bayesian setup (box v1) ---
-\begin{frame}{Bayesian inference: the setup}
+% --- S1a: Bayesian inference refresher ---
+\begin{frame}{Bayesian inference}
   \begin{itemize}
-    \item Fix a model: parameters $\bt$ with prior $p(\bt)$, data $\by$ with likelihood $p(\by\given\bt)$.
-    \item Seeing $\by$, Bayes' rule gives the \textbf{posterior} $p(\bt\given\by)\propto p(\by\given\bt)\,p(\bt)$; we want a \textbf{summary}, usually the mean $\hat{\bt}=\E[\bt\given\by]$.
-    \item Rarely available in closed form --- so we need a \textbf{procedure} that turns $\by$ into $\hat{\bt}$:
+    \item Fix a model: parameters $\bt$ with prior $p(\bt)$, and data $\by$ with likelihood $p(\by\given\bt)$.
+    \item Seeing $\by$, Bayes' rule updates the prior into the \textbf{posterior}:
+      \[ p(\bt\given\by)\;\propto\; p(\by\given\bt)\,p(\bt). \]
+    \item The posterior is our full, updated belief about $\bt$.
   \end{itemize}
-  \vspace{0.6em}
+  \vspace{0.2em}
+  \begin{center}
+  \begin{tikzpicture}[font=\scriptsize]
+    \draw[->] (-3,0) -- (3.2,0) node[right]{$\theta$};
+    \draw[gray, thick] plot[smooth] coordinates {(-3,0.05)(-2,0.16)(-1,0.29)(0,0.35)(1,0.29)(2,0.16)(3,0.05)};
+    \node[gray] at (-2.15,0.35){prior};
+    \draw[accent, very thick] plot[smooth] coordinates {(-0.6,0.03)(0,0.18)(0.4,0.5)(0.8,0.92)(1.2,0.5)(1.6,0.18)(2.2,0.03)};
+    \node[accent] at (1.85,0.85){posterior};
+  \end{tikzpicture}
+  \end{center}
+  {\footnotesize Data pulls the wide prior toward a sharper, updated belief.}
+\end{frame}
+
+% --- S1b: point estimation (introduces the box motif) ---
+\begin{frame}{Point estimation}
+  \begin{itemize}
+    \item Often we do not want the whole posterior --- just a single \textbf{point estimate} $\hat{\bt}$ of $\bt$.
+    \item The usual choice is the \textbf{posterior mean} $\hat{\bt}=\E[\bt\given\by]$ (best under squared error --- more soon).
+    \item But it is \alert{rarely available in closed form} --- so we need a \textbf{procedure} that turns $\by$ into $\hat{\bt}$:
+  \end{itemize}
+  \vspace{0.5em}
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
     \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=20mm] {$\by$};
@@ -82,7 +104,7 @@
     \node[below=1.5mm of out, font=\footnotesize, text=gray] {posterior estimate};
   \end{tikzpicture}
   \end{center}
-  \vspace{0.5em}
+  \vspace{0.4em}
   \begin{center}\alert{The next two slides fill this box in two different ways.}\end{center}
 \end{frame}
 
