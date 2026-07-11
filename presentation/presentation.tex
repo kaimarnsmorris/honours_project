@@ -219,12 +219,16 @@
 
 % --- S6: the pivot — training is Monte Carlo ---
 \begin{frame}{The observation this thesis starts from}
-  The training objective is a \textbf{Monte Carlo estimate} of the risk --- a \emph{random} quantity. So is the \textbf{gradient} that drives training.
+  In training we estimate the risk by \textbf{Monte Carlo}:
+  \[
+    L(\bg)\;\approx\;\tfrac{1}{N}\sum_{i=1}^{N}\ell\big(\bt_i,\net(\by_i)\big),\qquad (\bt_i,\by_i)\sim\text{model}.
+  \]
   \begin{itemize}
-    \item The training gradient is a \alert{random quantity with variance}.
-    \item That variance comes from \emph{how we sample the loss}, not from the inference problem.
-    \item \alert{So we can reduce it}, with the classical variance-reduction tools of Monte Carlo.
+    \item So the \textbf{gradient} that drives training is a \alert{random quantity with variance}.
+    \item That variance is about \emph{how we sample the loss}, not the inference problem --- \alert{so we can reduce it}.
   \end{itemize}
+  \vspace{0.3em}
+  {\footnotesize \emph{What if}, for part of the parameters, we could compute a conditional expectation like $\E[\bt_1\given\bt_2,\by]$ in closed form? \alert{That is the first lever.}}
 \end{frame}
 
 % --- S7: Rao-Blackwell idea ---
