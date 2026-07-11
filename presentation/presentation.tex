@@ -122,17 +122,17 @@
     \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
     \draw[->, thick] (y) -- (map);
     \draw[->, thick] (map) -- (out);
-    % contents of the map box: sample (top-left) -> histogram -> estimate (bottom-right)
+    % contents of the map box: sample (top-left) -> histogram -> estimate (bottom-right), colinear
     \begin{scope}[shift={(map.center)}]
       \node[anchor=north west, font=\scriptsize] at (-2.5,1.7) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
-      \draw[->, gray] (-1.35,1.2) -- (-0.45,0.5);
-      \begin{scope}[shift={(-0.75,-0.35)}]
-        \draw[->] (0,0) -- (1.5,0) node[right,font=\tiny]{$\theta$};
-        \draw[->] (0,0) -- (0,0.7) node[above,font=\tiny]{\#};
-        \foreach \x/\h in {0.12/0.15, 0.34/0.32, 0.56/0.46, 0.78/0.37, 1.00/0.22, 1.22/0.10}
+      \draw[->, gray] (-1.35,0.945) -- (-0.6,0.42);
+      \begin{scope}[shift={(-0.7,-0.32)}]
+        \draw[->] (0,0) -- (1.4,0) node[right,font=\tiny]{$\theta$};
+        \draw[->] (0,0) -- (0,0.65) node[left,font=\tiny]{\#};
+        \foreach \x/\h in {0.10/0.14, 0.32/0.30, 0.54/0.44, 0.76/0.35, 0.98/0.20, 1.20/0.09}
           \fill[accent] (\x,0) rectangle (\x+0.18,\h);
       \end{scope}
-      \draw[->, gray] (0.55,-0.5) -- (1.05,-1.18);
+      \draw[->, gray] (0.6,-0.42) -- (1.35,-0.945);
       \node[anchor=south east, font=\scriptsize] at (2.5,-1.7) {$\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
     \end{scope}
     % aligned labels underneath
