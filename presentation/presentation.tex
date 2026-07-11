@@ -70,20 +70,41 @@
     \item Rarely available in closed form --- so we need a \textbf{procedure} that turns $\by$ into $\hat{\bt}$:
   \end{itemize}
   \vspace{0.6em}
-  \begin{center}\estbox{dashed, draw=gray}{{\Large\color{gray}\bfseries ?}}\end{center}
-  \vspace{0.6em}
+  \begin{center}
+  \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
+    \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=20mm] {$\by$};
+    \node (map) [draw, dashed, draw=gray, rounded corners, minimum height=12mm, minimum width=26mm, right=14mm of y] {{\Large\color{gray}\bfseries ?}};
+    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=22mm, right=14mm of map] {$\hat{\bt}$};
+    \draw[->, thick] (y) -- (map);
+    \draw[->, thick] (map) -- (out);
+    \node[below=1.5mm of y,   font=\footnotesize, text=gray] {dataset};
+    \node[below=1.5mm of map, font=\footnotesize, text=gray] {map};
+    \node[below=1.5mm of out, font=\footnotesize, text=gray] {posterior estimate};
+  \end{tikzpicture}
+  \end{center}
+  \vspace{0.5em}
   \begin{center}\alert{The next two slides fill this box in two different ways.}\end{center}
 \end{frame}
 
 % --- S2: MCMC (box v2) ---
 \begin{frame}{Filling the box (1): Markov chain Monte Carlo}
-  Sample the posterior, then average:
-  \[
-    \bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by),\qquad
-    \E[\bt\given\by]\approx \tfrac{1}{S}\textstyle\sum_{s}\bt^{(s)}.
-  \]
-  \begin{center}\estbox{fill=black!8}{MCMC sampler}\end{center}
-  \vspace{0.3em}
+  The box \emph{is} a sampler: draw from the posterior, then average.
+  \vspace{0.6em}
+  \begin{center}
+  \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
+    \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=18mm] {$\by$};
+    \node (map) [draw, fill=black!8, rounded corners, minimum height=17mm, minimum width=34mm, right=18mm of y] {};
+    \begin{scope}[shift={(map.center)}]
+      \foreach \x/\h in {-1.05/0.20, -0.63/0.44, -0.21/0.62, 0.21/0.54, 0.63/0.32, 1.05/0.16}
+        \fill[accent] (\x-0.14,-0.42) rectangle (\x+0.14,-0.42+\h);
+    \end{scope}
+    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=20mm, right=18mm of map] {$\hat{\bt}$};
+    \draw[->, thick] (y) -- (map);
+    \draw[->, thick] (map) -- node[above, font=\scriptsize] {$\tfrac{1}{S}\sum_s \bt^{(s)}$} (out);
+    \node[above=1.5mm of map, font=\scriptsize] {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
+  \end{tikzpicture}
+  \end{center}
+  \vspace{0.4em}
   \begin{itemize}
     \item Accurate and general --- but must be \alert{re-run from scratch for every new $\by$}, and can be slow.
     \item Do inference for \emph{many} datasets and you pay that cost \emph{every time}.
@@ -100,7 +121,24 @@
   \vspace{0.2em}
   \begin{columns}[c]
     \begin{column}{0.55\textwidth}
-      \centering\estbox{fill=black!8}{network $\net$}
+      \centering
+      \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
+        \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=13mm] {$\by$};
+        \node (map) [draw, fill=black!8, rounded corners, minimum height=18mm, minimum width=28mm, right=9mm of y] {};
+        \begin{scope}[shift={(map.center)}]
+          \foreach \i/\yy in {1/0.45,2/0,3/-0.45} \coordinate (i\i) at (-0.95,\yy);
+          \foreach \j/\yy in {1/0.6,2/0.2,3/-0.2,4/-0.6} \coordinate (h\j) at (0,\yy);
+          \foreach \k/\yy in {1/0.25,2/-0.25} \coordinate (o\k) at (0.95,\yy);
+          \foreach \i in {1,2,3} \foreach \j in {1,2,3,4} \draw[gray!55, line width=0.15pt] (i\i)--(h\j);
+          \foreach \j in {1,2,3,4} \foreach \k in {1,2} \draw[gray!55, line width=0.15pt] (h\j)--(o\k);
+          \foreach \i in {1,2,3} \fill[accent] (i\i) circle (1.5pt);
+          \foreach \j in {1,2,3,4} \fill[accent] (h\j) circle (1.5pt);
+          \foreach \k in {1,2} \fill[accent] (o\k) circle (1.5pt);
+        \end{scope}
+        \node (out) [draw, rounded corners, minimum height=12mm, minimum width=14mm, right=9mm of map] {$\hat{\bt}$};
+        \draw[->, thick] (y) -- (map);
+        \draw[->, thick] (map) -- (out);
+      \end{tikzpicture}
     \end{column}
     \begin{column}{0.43\textwidth}
       \centering
