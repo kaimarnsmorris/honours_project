@@ -182,30 +182,33 @@
     \includegraphics[width=0.9\textwidth]{normal_model_estimates.png}
   \end{center}
   \vspace{0.1em}
-  {\footnotesize The network (orange) matches MCMC (blue): it has \alert{learned the posterior-mean map}. \emph{Why} it does is the next slide.}
+  {\footnotesize The network (orange) matches MCMC (blue): it has \alert{learned the posterior-mean map}. \emph{Why}? --- the loss it was trained with.}
+\end{frame}
+
+% --- S5: loss functions pick the summary (last Background slide) ---
+\begin{frame}{The loss picks which summary you estimate}
+  The network minimises the \textbf{Bayes risk} $\;L(\bg)=\E_{\bt,\by}\big[\ell\big(\bt,\net(\by)\big)\big]$ --- and the loss $\ell$ decides \emph{which} posterior summary it targets:
+  \begin{center}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{lc}
+    \toprule
+    loss $\ell(\bt,a)$ & best estimate (its minimiser) \\
+    \midrule
+    squared \ $\lVert\bt-a\rVert^2$ & posterior \textbf{mean} $\;\E[\bt\given\by]$ \\
+    absolute \ $\lvert\bt-a\rvert$ & posterior \textbf{median} \\
+    quantile (pinball) & posterior \textbf{quantile} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.2em}
+  Squared error is exact: $\ \arg\min_{f}\ \E\big[\lVert\bt-f(\by)\rVert^2\big]=\E[\bt\given\by]$.
+  \vspace{0.2em}
+  {\footnotesize We train with squared error --- so the network targets the \alert{posterior mean}, exactly what it matched on the last slide.}
 \end{frame}
 
 % ===================================================================
 \section{Our contribution: variance reduction}
 % ===================================================================
-
-% --- S5: Bayes risk + squared-error => posterior mean ---
-\begin{frame}{What is the network trained to do?}
-  It minimises the \textbf{Bayes risk} --- expected loss over the model:
-  \[
-    L(\bg)=\E_{\bt,\by}\big[\,\ell\big(\bt,\net(\by)\big)\,\big].
-  \]
-  \begin{itemize}
-    \item Under squared error, the minimiser is exactly the \textbf{posterior mean}:
-      \[
-        \arg\min_{f}\ \E\big[\lVert\bt-f(\by)\rVert^2\big]=\E[\bt\given\by].
-      \]
-      \alert{That is why a well-trained network approximates $\E[\bt\given\by]$} --- it explains the last slide.
-    \item Change the loss, change the summary: absolute error $\to$ median, quantile loss $\to$ quantiles.
-  \end{itemize}
-  \vspace{0.1em}
-  {\footnotesize Pointwise in $\by$, the best constant $c$ minimising $\E[\lVert\bt-c\rVert^2\given\by]$ is $c=\E[\bt\given\by]$.}
-\end{frame}
 
 % --- S6: the pivot — training is Monte Carlo ---
 \begin{frame}{The observation this thesis starts from}
