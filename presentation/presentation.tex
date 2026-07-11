@@ -282,60 +282,7 @@
 
 % --- S13: thanks (NO "questions?"; the chair runs Q&A) ---
 \begin{frame}[standout]
-  Thank you\\[0.5em]
-  {\normalsize\mdseries Supervisors: Michael Bertolacci \& Edward Cripps}
-\end{frame}
-
-% ===================================================================
-%  BACKUP SLIDES (for Q&A; not counted in the talk)
-% ===================================================================
-\appendix
-
-\begin{frame}[noframenumbering]{Backup: RB vs IS at a glance}
-  \begin{center}
-  \renewcommand{\arraystretch}{1.3}
-  \begin{tabular}{lcc}
-    \toprule
-     & \textbf{Rao--Blackwell} & \textbf{Importance sampling} \\
-    \midrule
-    needs & a conjugate block & nothing special \\
-    variance guarantee & \textbf{yes, always} & none \\
-    carries to fitted weights & \textbf{yes} (linear net) & no \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-\end{frame}
-
-\begin{frame}[noframenumbering]{Backup: why the variance can only shrink}
-  Condition the standard gradient $g$ on $(\tau,\by)$. By the law of total variance,
-  \[
-    \Var(g) = \underbrace{\Var\big(\E[g\given\tau,\by]\big)}_{\Var(\nabla_{\RB})} + \underbrace{\E\big[\Var(g\given\tau,\by)\big]}_{\succeq\,0}.
-  \]
-  The second term is positive semi-definite, so $\Var(\nabla_{\RB}) \preceq \Var(g)$.
-\end{frame}
-
-\begin{frame}[noframenumbering]{Backup: RB vs MC across the whole grid}
-  \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_curves.png}\end{center}
-\end{frame}
-
-\begin{frame}[noframenumbering]{Backup: convergence vs total samples seen}
-  \begin{center}\includegraphics[height=0.82\textheight]{rb_tau_vs_samples.png}\end{center}
-\end{frame}
-
-\begin{frame}[noframenumbering]{Backup: importance-sampling diagnostics}
-  \begin{columns}[c]
-    \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{grad_variance.png}\end{column}
-    \begin{column}{0.5\textwidth}\includegraphics[width=\textwidth]{region_breakdown.png}\end{column}
-  \end{columns}
-  \vspace{0.3em}
-  {\scriptsize Left: per-minibatch gradient variance blows up as the proposal is pushed away from uniform. Right: the error lives at the boundary, which the proposals do not target.}
-\end{frame}
-
-\begin{frame}[noframenumbering]{Backup: models \& architectures}
-  \begin{itemize}
-    \item \textbf{RB study:} Bayesian linear regression, $\bt=(\tau,\bb)$; $\bb$ (coefficients) integrated out, $\tau\sim\mathrm{U}(0.01,1)$ sampled; multilayer perceptron; Gibbs sampler for the Bayes floor $L^*$.
-    \item \textbf{IS study:} AR(1) process, $T=100$; parameters $(\rho,\sigma)$; recurrent (GRU) network; $\mathrm{Beta}(\alpha,\alpha)$ proposal family on $\rho$.
-  \end{itemize}
+  Thank you
 \end{frame}
 
 \end{document}
