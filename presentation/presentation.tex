@@ -37,11 +37,11 @@
 \newcommand{\RB}{\mathrm{RB}}
 \newcommand{\MC}{\mathrm{MC}}
 
-% reusable "y -> box -> theta-hat" motif; #1 = box label
-\newcommand{\estbox}[1]{%
+% reusable "y -> box -> theta-hat" motif; #1 = extra box style, #2 = box label
+\newcommand{\estbox}[2]{%
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
     \node (y)   [draw, rounded corners, minimum height=9mm, minimum width=13mm] {$\by$};
-    \node (box) [draw, fill=black!8, rounded corners, minimum height=13mm, minimum width=36mm, right=16mm of y] {#1};
+    \node (box) [draw, rounded corners, minimum height=13mm, minimum width=36mm, right=16mm of y, #1] {#2};
     \node (out) [right=16mm of box] {$\hat{\bt}$};
     \draw[->, thick] (y)  -- (box);
     \draw[->, thick] (box) -- (out);
@@ -66,23 +66,23 @@
 \begin{frame}{Bayesian inference: the setup}
   \begin{itemize}
     \item Fix a model: parameters $\bt$ with prior $p(\bt)$, data $\by$ with likelihood $p(\by\given\bt)$.
-    \item Seeing $\by$, Bayes' rule updates belief to the \textbf{posterior} $\;p(\bt\given\by)\propto p(\by\given\bt)\,p(\bt)$.
-    \item We usually want one \textbf{summary} --- most often the posterior mean $\hat{\bt}=\E[\bt\given\by]$, our best estimate of $\bt$.
+    \item Seeing $\by$, Bayes' rule gives the \textbf{posterior} $p(\bt\given\by)\propto p(\by\given\bt)\,p(\bt)$; we want a \textbf{summary}, usually the mean $\hat{\bt}=\E[\bt\given\by]$.
+    \item Rarely available in closed form --- so we need a \textbf{procedure} that turns $\by$ into $\hat{\bt}$:
   \end{itemize}
-  \vspace{0.5em}
-  \begin{center}\estbox{$\E[\bt\given\by]$}\end{center}
-  \vspace{0.3em}
-  {\footnotesize The catch: this posterior is \alert{rarely available in closed form}.}
+  \vspace{0.6em}
+  \begin{center}\estbox{dashed, draw=gray}{{\Large\color{gray}\bfseries ?}}\end{center}
+  \vspace{0.6em}
+  \begin{center}\alert{The next two slides fill this box in two different ways.}\end{center}
 \end{frame}
 
 % --- S2: MCMC (box v2) ---
-\begin{frame}{One answer: Markov chain Monte Carlo}
-  Approximate the summary by \textbf{sampling} the posterior, then averaging:
+\begin{frame}{Filling the box (1): Markov chain Monte Carlo}
+  Sample the posterior, then average:
   \[
     \bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by),\qquad
     \E[\bt\given\by]\approx \tfrac{1}{S}\textstyle\sum_{s}\bt^{(s)}.
   \]
-  \begin{center}\estbox{MCMC sampler}\end{center}
+  \begin{center}\estbox{fill=black!8}{MCMC sampler}\end{center}
   \vspace{0.3em}
   \begin{itemize}
     \item Accurate and general --- but must be \alert{re-run from scratch for every new $\by$}, and can be slow.
@@ -91,16 +91,16 @@
 \end{frame}
 
 % --- S3: NBE + amortisation (box v3 + cost plot) ---
-\begin{frame}{Neural Bayes estimators: amortise the cost}
-  Make the box a \textbf{neural network} $\net(\by)$, trained \emph{once}.
+\begin{frame}{Filling the box (2): a neural network}
+  Make the box a \textbf{neural network} $\net(\by)$, trained \emph{once} --- a \emph{neural Bayes estimator}.
   \begin{itemize}
     \item Training data is free: \textbf{simulate} pairs $(\bt,\by)$ from the model, and adjust $\bg$ so $\net(\by)\approx\bt$.
-    \item Then every new dataset is a single \textbf{forward pass}.
+    \item Then every new dataset is a single \textbf{forward pass} --- the training cost is \alert{amortised}.
   \end{itemize}
   \vspace{0.2em}
   \begin{columns}[c]
     \begin{column}{0.55\textwidth}
-      \centering\estbox{network $\net$}
+      \centering\estbox{fill=black!8}{network $\net$}
     \end{column}
     \begin{column}{0.43\textwidth}
       \centering
