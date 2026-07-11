@@ -192,11 +192,11 @@
   \renewcommand{\arraystretch}{1.3}
   \begin{tabular}{lc}
     \toprule
-    loss $\ell(\bt,a)$ & best estimate (its minimiser) \\
+    loss $\ell(\bt,\hat{\bt})$ & best estimate (its minimiser) \\
     \midrule
-    squared \ $\lVert\bt-a\rVert^2$ & posterior \textbf{mean} $\;\E[\bt\given\by]$ \\
-    absolute \ $\lvert\bt-a\rvert$ & posterior \textbf{median} \\
-    quantile (pinball) & posterior \textbf{quantile} \\
+    squared \ $\lVert\bt-\hat{\bt}\rVert^2$ & posterior \textbf{mean} $\;\E[\bt\given\by]$ \\
+    absolute \ $\lvert\bt-\hat{\bt}\rvert$ & posterior \textbf{median} \\
+    quantile \ $(\alpha-\mathbf{1}\{\bt<\hat{\bt}\})(\bt-\hat{\bt})$ & posterior \textbf{quantile} \\
     \bottomrule
   \end{tabular}
   \end{center}
