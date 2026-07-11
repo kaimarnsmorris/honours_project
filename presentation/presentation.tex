@@ -115,20 +115,22 @@
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
     \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=16mm] {$\by$};
-    \node (map) [draw, fill=black!8, rounded corners, minimum width=50mm, minimum height=37mm, right=13mm of y] {};
+    \node (map) [draw, fill=black!8, rounded corners, minimum width=54mm, minimum height=37mm, right=13mm of y] {};
     \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
     \draw[->, thick] (y) -- (map);
     \draw[->, thick] (map) -- (out);
-    % contents of the map box: sample -> histogram (labelled axes) -> average
+    % contents of the map box: sample -> histogram -> average (diagonal cascade)
     \begin{scope}[shift={(map.center)}]
-      \node[font=\scriptsize] at (0,1.45) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
-      \begin{scope}[shift={(-1.05,-0.6)}]
-        \draw[->] (0,0) -- (2.15,0) node[right,font=\tiny]{$\theta$};
-        \draw[->] (0,0) -- (0,1.0) node[above,font=\tiny]{count};
-        \foreach \x/\h in {0.18/0.22, 0.50/0.46, 0.82/0.72, 1.14/0.56, 1.46/0.33, 1.78/0.15}
-          \fill[accent] (\x,0) rectangle (\x+0.26,\h);
+      \node[font=\scriptsize] at (-0.75,1.4) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
+      \draw[->, gray] (-0.4,1.08) -- (0.1,0.52);
+      \begin{scope}[shift={(-1.05,-0.5)}]
+        \draw[->] (0,0) -- (2.1,0) node[right,font=\tiny]{$\theta$};
+        \draw[->] (0,0) -- (0,0.95) node[above,font=\tiny]{count};
+        \foreach \x/\h in {0.16/0.20, 0.46/0.42, 0.76/0.62, 1.06/0.50, 1.36/0.30, 1.66/0.14}
+          \fill[accent] (\x,0) rectangle (\x+0.24,\h);
       \end{scope}
-      \node[font=\scriptsize] at (0,-1.5) {average:\; $\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
+      \draw[->, gray] (0.35,-0.75) -- (0.62,-1.18);
+      \node[font=\scriptsize] at (0.82,-1.45) {$\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
     \end{scope}
     % aligned labels underneath
     \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {map};
