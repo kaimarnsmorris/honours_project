@@ -78,7 +78,10 @@
     \draw[gray, thick] plot[smooth] coordinates {(-3,0.05)(-2,0.16)(-1,0.29)(0,0.35)(1,0.29)(2,0.16)(3,0.05)};
     \node[gray] at (-2.15,0.35){prior};
     \draw[accent, very thick] plot[smooth] coordinates {(-0.6,0.03)(0,0.18)(0.4,0.5)(0.8,0.92)(1.2,0.5)(1.6,0.18)(2.2,0.03)};
-    \node[accent] at (1.85,0.85){posterior};
+    \node[accent] at (1.9,0.85){posterior};
+    \draw[accent, dashed] (0.8,0) -- (0.8,0.9);
+    \fill[accent] (0.8,0) circle (1.3pt);
+    \node[accent, anchor=north, font=\scriptsize] at (0.8,-0.04) {$\E[\bt\given\by]$};
   \end{tikzpicture}
   \end{center}
   {\footnotesize Data pulls the wide prior toward a sharper, updated belief.}
@@ -119,18 +122,18 @@
     \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
     \draw[->, thick] (y) -- (map);
     \draw[->, thick] (map) -- (out);
-    % contents of the map box: sample -> histogram -> average (diagonal cascade)
+    % contents of the map box: sample (top-left) -> histogram -> estimate (bottom-right)
     \begin{scope}[shift={(map.center)}]
-      \node[font=\scriptsize] at (-0.75,1.4) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
-      \draw[->, gray] (-0.4,1.08) -- (0.1,0.52);
-      \begin{scope}[shift={(-1.05,-0.5)}]
-        \draw[->] (0,0) -- (2.1,0) node[right,font=\tiny]{$\theta$};
-        \draw[->] (0,0) -- (0,0.95) node[above,font=\tiny]{count};
-        \foreach \x/\h in {0.16/0.20, 0.46/0.42, 0.76/0.62, 1.06/0.50, 1.36/0.30, 1.66/0.14}
-          \fill[accent] (\x,0) rectangle (\x+0.24,\h);
+      \node[anchor=north west, font=\scriptsize] at (-2.5,1.7) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
+      \draw[->, gray] (-1.35,1.2) -- (-0.45,0.5);
+      \begin{scope}[shift={(-0.75,-0.35)}]
+        \draw[->] (0,0) -- (1.5,0) node[right,font=\tiny]{$\theta$};
+        \draw[->] (0,0) -- (0,0.7) node[above,font=\tiny]{\#};
+        \foreach \x/\h in {0.12/0.15, 0.34/0.32, 0.56/0.46, 0.78/0.37, 1.00/0.22, 1.22/0.10}
+          \fill[accent] (\x,0) rectangle (\x+0.18,\h);
       \end{scope}
-      \draw[->, gray] (0.35,-0.75) -- (0.62,-1.18);
-      \node[font=\scriptsize] at (0.82,-1.45) {$\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
+      \draw[->, gray] (0.55,-0.5) -- (1.05,-1.18);
+      \node[anchor=south east, font=\scriptsize] at (2.5,-1.7) {$\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
     \end{scope}
     % aligned labels underneath
     \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {map};
