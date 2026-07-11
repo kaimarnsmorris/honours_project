@@ -7,6 +7,22 @@
 
 ---
 
+## Revision — 2026-07-11 (v2, restructured)
+
+Supersedes parts of §2/§4/§6 after the assessment brief and timing were clarified.
+
+- **Timing:** presentation is **≤ 20 min** (not 15), then 5 min Q&A run by a session chair. Target **~18 min**; chair gives 5-min and 1-min signals and hard-stops at 20.
+- **Audience:** fellow **honours students**, possibly non-statistics fields (plus staff). "Accessible to peers" is the bar.
+- **Rubric (drives design):** Maths/stat content & explanation **40%** (real substance — an outline of a proof, why one method over another; not just graphs); Structure **30%** (clear problem/results/significance/context, motivated progression, punchline lands); Presentation **20%** (legible, within time, talk to audience); Questions **10%**.
+- **Equipment:** BYO device; deliver a **single self-contained PDF** on USB (metropolis/beamer PDF already satisfies this); no reliance on animation/video; bring HDMI + USB-C adapters + charger; no laser pointer.
+- **Process rule:** the **closing slide must NOT ask for questions** — the chair runs Q&A. Replace the standout "Questions?" with Thanks / Acknowledgements only.
+- **Agreed structure (13 content slides, two acts + breaker + conclusion):**
+  Act 1 — (1) Bayesian setup, (2) MCMC, (3) NBE + amortisation, (4) does-it-work comparison. *Section breaker.* Act 2 — (5) Bayes risk + squared-error⇒posterior-mean, (6) the MC pivot, (7) Rao–Blackwell idea, (8) RB + total-variance guarantee, (9) RB result, (10) IS idea, (11) IS result. (12) Conclusion (results+significance+punchline). (13) Thanks.
+- **Spine device:** the **evolving box** `y → box → θ̂` across slides 1–3 (compute-the-posterior-mean → MCMC sampler → neural network).
+- **Decisions:** keep IS as a 2-slide contrast; **both mini-proofs on-slide** (squared-error⇒posterior-mean; the total-variance split); introduce each example model (normal / linear regression / AR1) *where it is needed*, not one running example.
+- **New diagrams (TikZ, verified via Tectonic):** evolving box; amortisation cost-vs-#datasets; simulate/train note; variance-decomposition bar; IS proposal-reshaping.
+- **Theme:** metropolis (already applied), compiled with Tectonic/XeLaTeX.
+
 ## 1. Goal
 
 Produce a talk that leaves the audience **understanding the key points of the thesis as well as possible** in under 15 minutes. This is an assessed honours presentation — the mark rewards clear communication of the contribution, not technical exhaustiveness. Understanding beats rigour throughout.
