@@ -67,7 +67,7 @@
 \begin{frame}{Bayesian inference}
   \begin{itemize}
     \item Fix a model: parameters $\bt$ with prior $p(\bt)$, and data $\by$ with likelihood $p(\by\given\bt)$.
-    \item Seeing $\by$, Bayes' rule updates the prior into the \textbf{posterior}:
+    \item Seeing $\by$, Bayes' rule updates the prior into the \textbf{posterior distribution}:
       \[ p(\bt\given\by)\;\propto\; p(\by\given\bt)\,p(\bt). \]
     \item The posterior is our full, updated belief about $\bt$.
   \end{itemize}
@@ -84,14 +84,13 @@
     \node[accent, anchor=north, font=\scriptsize] at (0.8,-0.04) {$\E[\bt\given\by]$};
   \end{tikzpicture}
   \end{center}
-  {\footnotesize Data pulls the wide prior toward a sharper, updated belief.}
 \end{frame}
 
 % --- S1b: point estimation (introduces the box motif) ---
 \begin{frame}{Point estimation}
   \begin{itemize}
     \item Often we do not want the whole posterior --- just a single \textbf{point estimate} $\hat{\bt}$ of $\bt$.
-    \item The usual choice is the \textbf{posterior mean} $\hat{\bt}=\E[\bt\given\by]$ (best under squared error --- more soon).
+    \item The usual choice is the \textbf{posterior mean} $\hat{\bt}=\E[\bt\given\by]$.
     \item But it is \alert{rarely available in closed form} --- so we need a \textbf{procedure} that turns $\by$ into $\hat{\bt}$:
   \end{itemize}
   \vspace{0.5em}
@@ -108,12 +107,10 @@
   \end{tikzpicture}
   \end{center}
   \vspace{0.4em}
-  \begin{center}\alert{The next two slides fill this box in two different ways.}\end{center}
 \end{frame}
 
 % --- S2: MCMC (box v2) ---
 \begin{frame}{Filling the box (1): Markov chain Monte Carlo}
-  The box \emph{is} a sampler: draw from the posterior, histogram them, average.
   \vspace{-0.3em}
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
@@ -137,19 +134,19 @@
       \node[anchor=south east, font=\scriptsize] at (2.5,-1.7) {$\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
     \end{scope}
     % aligned labels underneath
-    \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {map};
+    \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {MCMC sampler};
     \node[font=\footnotesize, text=gray] at (y   |- maplab) {dataset};
     \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
   \end{tikzpicture}
   \end{center}
   \begin{itemize}
+    \item 
     \item Accurate and general --- but must be \alert{re-run from scratch for every new $\by$}, and can be slow.
   \end{itemize}
 \end{frame}
 
 % --- S3: NBE + amortisation (box v3 + cost plot) ---
 \begin{frame}{Filling the box (2): a neural network}
-  Make the box a \textbf{neural network} $\net(\by)$, trained \emph{once} --- a \emph{neural Bayes estimator}.
   \begin{itemize}
     \item Training data is free: \textbf{simulate} pairs $(\bt,\by)$ from the model, and adjust $\bg$ so $\net(\by)\approx\bt$.
     \item Then each new dataset is a single \textbf{forward pass} --- the cost is \alert{amortised}.
@@ -174,7 +171,7 @@
       \foreach \k in {1,2} \fill[accent] (o\k) circle (2pt);
     \end{scope}
     % aligned labels underneath
-    \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {map ($\net$)};
+    \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {neural network};
     \node[font=\footnotesize, text=gray] at (y   |- maplab) {dataset};
     \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
   \end{tikzpicture}
