@@ -110,26 +110,34 @@
 
 % --- S2: MCMC (box v2) ---
 \begin{frame}{Filling the box (1): Markov chain Monte Carlo}
-  The box \emph{is} a sampler: draw from the posterior, then average.
-  \vspace{0.6em}
+  The box \emph{is} a sampler: draw from the posterior, histogram them, average.
+  \vspace{-0.3em}
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
-    \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=18mm] {$\by$};
-    \node (map) [draw, fill=black!8, rounded corners, minimum height=17mm, minimum width=34mm, right=18mm of y] {};
-    \begin{scope}[shift={(map.center)}]
-      \foreach \x/\h in {-1.05/0.20, -0.63/0.44, -0.21/0.62, 0.21/0.54, 0.63/0.32, 1.05/0.16}
-        \fill[accent] (\x-0.14,-0.42) rectangle (\x+0.14,-0.42+\h);
-    \end{scope}
-    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=20mm, right=18mm of map] {$\hat{\bt}$};
+    \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=16mm] {$\by$};
+    \node (map) [draw, fill=black!8, rounded corners, minimum width=50mm, minimum height=37mm, right=13mm of y] {};
+    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
     \draw[->, thick] (y) -- (map);
-    \draw[->, thick] (map) -- node[above, font=\scriptsize] {$\tfrac{1}{S}\sum_s \bt^{(s)}$} (out);
-    \node[above=1.5mm of map, font=\scriptsize] {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
+    \draw[->, thick] (map) -- (out);
+    % contents of the map box: sample -> histogram (labelled axes) -> average
+    \begin{scope}[shift={(map.center)}]
+      \node[font=\scriptsize] at (0,1.45) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
+      \begin{scope}[shift={(-1.05,-0.6)}]
+        \draw[->] (0,0) -- (2.15,0) node[right,font=\tiny]{$\theta$};
+        \draw[->] (0,0) -- (0,1.0) node[above,font=\tiny]{count};
+        \foreach \x/\h in {0.18/0.22, 0.50/0.46, 0.82/0.72, 1.14/0.56, 1.46/0.33, 1.78/0.15}
+          \fill[accent] (\x,0) rectangle (\x+0.26,\h);
+      \end{scope}
+      \node[font=\scriptsize] at (0,-1.5) {average:\; $\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
+    \end{scope}
+    % aligned labels underneath
+    \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {map};
+    \node[font=\footnotesize, text=gray] at (y   |- maplab) {dataset};
+    \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
   \end{tikzpicture}
   \end{center}
-  \vspace{0.4em}
   \begin{itemize}
     \item Accurate and general --- but must be \alert{re-run from scratch for every new $\by$}, and can be slow.
-    \item Do inference for \emph{many} datasets and you pay that cost \emph{every time}.
   \end{itemize}
 \end{frame}
 
@@ -138,45 +146,33 @@
   Make the box a \textbf{neural network} $\net(\by)$, trained \emph{once} --- a \emph{neural Bayes estimator}.
   \begin{itemize}
     \item Training data is free: \textbf{simulate} pairs $(\bt,\by)$ from the model, and adjust $\bg$ so $\net(\by)\approx\bt$.
-    \item Then every new dataset is a single \textbf{forward pass} --- the training cost is \alert{amortised}.
+    \item Then each new dataset is a single \textbf{forward pass} --- the cost is \alert{amortised}.
   \end{itemize}
-  \vspace{0.2em}
-  \begin{columns}[c]
-    \begin{column}{0.55\textwidth}
-      \centering
-      \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
-        \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=13mm] {$\by$};
-        \node (map) [draw, fill=black!8, rounded corners, minimum height=18mm, minimum width=28mm, right=9mm of y] {};
-        \begin{scope}[shift={(map.center)}]
-          \foreach \i/\yy in {1/0.45,2/0,3/-0.45} \coordinate (i\i) at (-0.95,\yy);
-          \foreach \j/\yy in {1/0.6,2/0.2,3/-0.2,4/-0.6} \coordinate (h\j) at (0,\yy);
-          \foreach \k/\yy in {1/0.25,2/-0.25} \coordinate (o\k) at (0.95,\yy);
-          \foreach \i in {1,2,3} \foreach \j in {1,2,3,4} \draw[gray!55, line width=0.15pt] (i\i)--(h\j);
-          \foreach \j in {1,2,3,4} \foreach \k in {1,2} \draw[gray!55, line width=0.15pt] (h\j)--(o\k);
-          \foreach \i in {1,2,3} \fill[accent] (i\i) circle (1.5pt);
-          \foreach \j in {1,2,3,4} \fill[accent] (h\j) circle (1.5pt);
-          \foreach \k in {1,2} \fill[accent] (o\k) circle (1.5pt);
-        \end{scope}
-        \node (out) [draw, rounded corners, minimum height=12mm, minimum width=14mm, right=9mm of map] {$\hat{\bt}$};
-        \draw[->, thick] (y) -- (map);
-        \draw[->, thick] (map) -- (out);
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.43\textwidth}
-      \centering
-      \begin{tikzpicture}[font=\scriptsize,>=Stealth]
-        \draw[->] (0,0) -- (3.5,0) node[right,font=\tiny]{\# datasets};
-        \draw[->] (0,0) -- (0,2.3) node[above,font=\tiny]{cost};
-        \draw[very thick,blue] (0,0.06) -- (3.1,2.15);
-        \node[blue,font=\tiny,anchor=south east] at (3.1,2.0){MCMC};
-        \draw[very thick,orange] (0,1.35) -- (3.1,1.68);
-        \node[orange,font=\tiny,anchor=north west] at (1.6,1.5){NBE};
-        \node[gray,font=\tiny,anchor=west] at (0.05,1.12){train once};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
-  \vspace{0.2em}
-  {\footnotesize \alert{Pay once} up front; after that, inference is nearly free.}
+  \vspace{-0.1em}
+  \begin{center}
+  \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
+    \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=16mm] {$\by$};
+    \node (map) [draw, fill=black!8, rounded corners, minimum width=48mm, minimum height=30mm, right=13mm of y] {};
+    \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
+    \draw[->, thick] (y) -- (map);
+    \draw[->, thick] (map) -- (out);
+    % neural network inside the map box
+    \begin{scope}[shift={(map.center)}]
+      \foreach \i/\yy in {1/0.72,2/0.24,3/-0.24,4/-0.72} \coordinate (i\i) at (-1.45,\yy);
+      \foreach \j/\yy in {1/0.9,2/0.45,3/0,4/-0.45,5/-0.9} \coordinate (h\j) at (0,\yy);
+      \foreach \k/\yy in {1/0.34,2/-0.34} \coordinate (o\k) at (1.45,\yy);
+      \foreach \i in {1,2,3,4} \foreach \j in {1,2,3,4,5} \draw[gray!55, line width=0.2pt] (i\i)--(h\j);
+      \foreach \j in {1,2,3,4,5} \foreach \k in {1,2} \draw[gray!55, line width=0.2pt] (h\j)--(o\k);
+      \foreach \i in {1,2,3,4} \fill[accent] (i\i) circle (2pt);
+      \foreach \j in {1,2,3,4,5} \fill[accent] (h\j) circle (2pt);
+      \foreach \k in {1,2} \fill[accent] (o\k) circle (2pt);
+    \end{scope}
+    % aligned labels underneath
+    \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {map ($\net$)};
+    \node[font=\footnotesize, text=gray] at (y   |- maplab) {dataset};
+    \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
+  \end{tikzpicture}
+  \end{center}
 \end{frame}
 
 % --- S4: does it work? (normal example) ---
