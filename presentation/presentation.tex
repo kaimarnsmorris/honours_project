@@ -292,14 +292,14 @@
 % --- S9: RB result (Bayesian linear regression) ---
 \begin{frame}{Does it pay off? Bayesian linear regression}
   \begin{center}
-    \includegraphics[width=0.97\textwidth]{rb_hero.png}\\[0.2em]
-    {\scriptsize MC (blue) vs RB (orange) vs Bayes floor $L^*$ (green), $p=10$ coefficients --- batch sizes 4, 16, 64, 256.}
+    \includegraphics[width=0.90\textwidth]{rb_hero.png}\\[0.15em]
+    {\scriptsize $p=10$ coefficients; curves are mean $\pm$ 1 s.d. over repeated training runs.}
   \end{center}
-  \vspace{0.3em}
+  \vspace{0.1em}
   \begin{itemize}
     \item Integrate out the coefficients $\bb$; a Gibbs sampler gives the Bayes-optimal floor $L^*$ (green).
     \item RB reaches a \textbf{lower test error} at the small and moderate batches --- where the training gradient is noisiest.
-    \item The advantage \textbf{shrinks as the batch grows}: by batch 256 the MC gradient is already low-variance, so the curves meet.
+    \item The advantage \textbf{shrinks as the batch grows}: by batch 256 the curves meet.
   \end{itemize}
 \end{frame}
 

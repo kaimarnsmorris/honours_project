@@ -1,22 +1,106 @@
 #!/usr/bin/env python3
-"""Crop the p=10 row (all batch sizes) out of rb_tau_curves.png -> rb_hero.png.
+"""Regenerate the RB-vs-MC hero figure: the p=10 row only, as a clean standalone
+1x4 panel WITH its own Epoch x-axis, batch-size column titles and legend.
 
-The source is a 5x4 grid: rows p = 2, 5, 10, 20, 30; cols batch = 4, 16, 64, 256.
-Row bands (detected): p2 .060-.232, p5 .243-.415, p10 .425-.598, p20 .607-.780, p30 .790-.963.
+Reuses the saved sweep results from the honours repo (no retraining) -- the same
+rb_vs_mc_sweep_tau_results.npz that produced tex/figures/rb_tau_curves.png. A single
+row is drawn (i is always both first and last row) so every panel keeps its x labels,
+unlike the old crop of the multi-row grid, which dropped them on interior rows.
+
+Usage:  python tools/make_rb_hero.py            # -> figures/rb_hero.png
 """
-import sys
-from PIL import Image
+from __future__ import annotations
 
-# vertical fractions of the full image to keep (p=10 band, small pad into the gaps)
-TOP = 0.421   # a hair above the p=10 panel tops
-BOT = 0.601   # cut in the white gap above the p=20 row so no sliver bleeds in
+import json
+from pathlib import Path
+
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+
+HERE = Path(__file__).resolve().parent
+# honours repo lives beside the GitHub checkout: .../Documents/honours/final/sweeps2
+DATA_DIR = HERE.parents[3] / "honours" / "final" / "sweeps2"
+NPZ = DATA_DIR / "rb_vs_mc_sweep_tau_results.npz"
+FLOORS = DATA_DIR / "floors.json"
+OUT = HERE.parent / "figures" / "rb_hero.png"
+
+P = 10
+XI = 0  # design-matrix realisation X0 (matches the thesis rb_tau_curves.png)
+L_STAR_FALLBACK = {2: 0.0774, 5: 0.0952, 10: 0.1191, 20: 0.1430, 30: 0.2285}
+
+plt.rcParams.update({
+    "axes.titlesize": 15,
+    "axes.labelsize": 14,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "legend.fontsize": 12,
+})
+
+
+def curve(d, p, bs, k):
+    """Fetch a curve array, preferring the X-prefixed key, falling back to legacy X0."""
+    xkey = f"X{XI}_p{p}_bs{bs}_{k}"
+    if xkey in d:
+        return d[xkey]
+    return d[f"p{p}_bs{bs}_{k}"]
+
+
+def load_floor(p):
+    if FLOORS.exists():
+        data = json.load(open(FLOORS))
+        if str(XI) in data and str(p) in data[str(XI)]:
+            return float(data[str(XI)][str(p)])
+    return L_STAR_FALLBACK[p]
+
 
 def main():
-    src = Image.open('figures/rb_tau_curves.png')
-    w, h = src.size
-    box = (0, int(TOP * h), w, int(BOT * h))
-    src.crop(box).save('figures/rb_hero.png')
-    print(f'source {w}x{h} -> rb_hero.png crop {box}')
+    d = np.load(NPZ, allow_pickle=True)
+    batch_sizes = [int(x) for x in d["batch_sizes"]]
+    n_epochs = int(d["n_epochs"])
+    epochs = np.arange(1, n_epochs + 1)
+    Lstar = load_floor(P)
 
-if __name__ == '__main__':
+    ncols = len(batch_sizes)
+    fig, axes = plt.subplots(1, ncols, figsize=(4 * ncols, 2.9),
+                             squeeze=False, sharex=True, sharey=True)
+    for j, bs in enumerate(batch_sizes):
+        ax = axes[0][j]
+        mc, rb = curve(d, P, bs, "mc"), curve(d, P, bs, "rb")
+        mc_m, mc_s = mc.mean(0), mc.std(0)
+        rb_m, rb_s = rb.mean(0), rb.std(0)
+        ax.plot(epochs, mc_m, color="tab:blue", label="MC")
+        ax.fill_between(epochs, mc_m - mc_s, mc_m + mc_s, alpha=0.2, color="tab:blue")
+        ax.plot(epochs, rb_m, color="tab:orange", label="RB")
+        ax.fill_between(epochs, rb_m - rb_s, rb_m + rb_s, alpha=0.2, color="tab:orange")
+        ax.axhline(Lstar, color="darkgreen", ls="--", lw=1.2, zorder=1)
+        ax.set_yscale("log")
+        ax.grid(True, which="both", ls="--", linewidth=0.5)
+        ax.set_title(f"batch size = {bs}")
+        ax.set_xlabel("Epoch")
+    axes[0][0].set_ylabel(f"p = {P}\nTest MSE (log)")
+
+    # Clip the shared y-axis to the leftmost (smallest-batch) panel's range so the
+    # high-batch panels' large first-epoch errors do not squash the curves.
+    lb = batch_sizes[0]
+    lmc, lrb = curve(d, P, lb, "mc"), curve(d, P, lb, "rb")
+    top = max((lmc.mean(0) + lmc.std(0)).max(), (lrb.mean(0) + lrb.std(0)).max())
+    mins = [Lstar] + [curve(d, P, bs, k).mean(0).min()
+                      for bs in batch_sizes for k in ("mc", "rb")]
+    axes[0][0].set_ylim(max(min(mins), 1e-4) * 0.85, top * 1.08)
+
+    handles = [Line2D([0], [0], color="tab:blue", lw=2, label="MC"),
+               Line2D([0], [0], color="tab:orange", lw=2, label="RB"),
+               Line2D([0], [0], color="darkgreen", lw=1.2, ls="--", label=r"Bayes floor $L^*$")]
+    axes[0][0].legend(handles=handles, loc="upper right")
+    plt.tight_layout()
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(OUT, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    print(f"saved {OUT}  (p={P}, X{XI})")
+
+
+if __name__ == "__main__":
     main()
