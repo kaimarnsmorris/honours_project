@@ -213,12 +213,8 @@
   \]
 \end{frame}
 
-% ===================================================================
-\section{Our contribution: variance reduction}
-% ===================================================================
-
-% --- S6: the pivot — training is Monte Carlo ---
-\begin{frame}{The observation this thesis starts from}
+% --- The idea: training is Monte Carlo (last Background slide) ---
+\begin{frame}{The idea}
   In training we estimate the risk by \textbf{Monte Carlo}:
   \[
     L(\bg)\;\approx\;\tfrac{1}{N}\sum_{i=1}^{N}\ell\big(\bt_i,\net(\by_i)\big),\qquad (\bt_i,\by_i)\sim\text{model}.
@@ -231,8 +227,12 @@
   {\footnotesize \emph{What if}, for part of the parameters, we could compute a conditional expectation like $\E[\bt_1\given\bt_2,\by]$ in closed form? \alert{That is the first lever.}}
 \end{frame}
 
+% ===================================================================
+\section{Idea 1: Rao--Blackwellisation}
+% ===================================================================
+
 % --- S7: Rao-Blackwell idea ---
-\begin{frame}{Idea 1: Rao--Blackwellisation}
+\begin{frame}{The trick}
   A classical trick for killing Monte Carlo noise.
   \begin{itemize}
     \item Estimating an average by sampling? If part of it can be computed \textbf{exactly}, do that --- replace the sampled piece by its exact \textbf{conditional mean}.
@@ -294,12 +294,12 @@
 % >>> IS MODULE START (S10-S11 — remove this block if tight for time) <<<
 
 % ===================================================================
-\section{A second lever: importance sampling}
+\section{Idea 2: importance sampling}
 % ===================================================================
 
 % --- S10: importance sampling idea ---
-\begin{frame}{Idea 2: importance sampling}
-  A more general lever --- \textbf{no conjugacy required}.
+\begin{frame}{A more general lever}
+  \textbf{No conjugacy required} --- unlike Rao--Blackwell.
   \begin{itemize}
     \item Simulate from a \textbf{proposal} that oversamples the informative regions, then \textbf{reweight} back to the original risk (unbiased for any proposal).
     \item But \alert{no guarantee}: bad weights can \emph{increase} variance and shrink the effective sample size.
