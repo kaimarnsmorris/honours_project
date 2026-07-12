@@ -28,6 +28,7 @@
 % ---- Notation macros (mirror the thesis) ----
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Tr}{\operatorname{Tr}}
 \newcommand{\Normal}{\mathcal{N}}
 \newcommand{\given}{\,|\,}
 \newcommand{\bt}{\bm{\theta}}
@@ -232,76 +233,59 @@
 \section{Idea 1: Rao--Blackwellisation}
 % ===================================================================
 
-% --- S7: Rao-Blackwellising the Bayes risk (general loss) ---
-\begin{frame}{Rao--Blackwellising the Bayes risk}
+% --- S7: the trick (RB intuition + our insight: apply it to training) ---
+\begin{frame}{The trick}
+  \textbf{Some models have conditional conjugacy.} Split the parameters $\bt=(\bt_1,\bt_2)$: conditioning on $\bt_2$ leaves the posterior of $\bt_1$ in \textbf{closed form}, so its mean $\E[\bt_1\given\bt_2,\by]$ is analytic.
   \begin{itemize}
-    \item Some models are \textbf{conditionally conjugate}: with $\bt=(\bt_1,\bt_2)$, conditioning on $\bt_2$ leaves $p(\bt_1\given\bt_2,\by)$ in closed form --- so $\E[\bt_1\given\bt_2,\by]$ is \textbf{analytic}.
-    \item Training minimises the \textbf{Bayes risk}, normally estimated by \emph{sampling} $(\bt,\by)$:
-      \[ L(\bg)=\E_{\bt,\by}\big[\ell(\bt,\net(\by))\big]. \]
-    \item \alert{Rao--Blackwellise first:} condition on $(\bt_2,\by)$ and do the $\bt_1$-average \emph{analytically}, before the Monte Carlo estimate:
-      \[ L(\bg)=\E_{\bt_2,\by}\big[\,\underbrace{\E\big[\ell(\bt,\net(\by))\given\bt_2,\by\big]}_{\bt_1\ \text{integrated out exactly, not sampled}}\,\big]. \]
+    \item The network trains on $(\by,\bt)$ pairs where the target $\bt$ is a \textbf{noisy draw}. \alert{Replace the conjugate block $\bt_1$ with its exact mean $\E[\bt_1\given\bt_2,\by]$ --- a cleaner label.}
+    \item This is classical \textbf{Rao--Blackwell}: replacing a sampled piece by its conditional mean can only \emph{reduce} variance.
   \end{itemize}
-  {\footnotesize Same risk, but one noisy dimension is gone $\Rightarrow$ a \textbf{lower-variance} estimate (e.g. linear regression: fix the noise variance $\bt_2$, the coefficients $\bt_1$ are Gaussian).}
+  \vspace{0.3em}
+  {\footnotesize \textbf{Example} --- Bayesian linear regression: given the noise variance $\sigma^2\,(=\bt_2)$, the coefficients $\bb\,(=\bt_1)$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is closed-form.}
 \end{frame}
 
-% --- S8a: the squared-error case (conditional-mean target) ---
-\begin{frame}{Squared error: the target is the conditional mean}
-  Under squared error, take the integrated block $\ell=\lVert\bt_1-\hat{\bt}_1\rVert^2$ \ ($\hat{\bt}_1$ = the network's estimate). Its inner expectation splits:
+% --- S8: concrete mechanism on Bayesian linear regression ---
+\begin{frame}{Bayesian linear regression: a cleaner target}
+  Model $\by=X\bb+\bm\varepsilon$, $\bm\varepsilon\sim\Normal(0,\sigma^2 I)$ --- the parameters are the coefficients $\bb$ and the noise variance $\sigma^2$.
+  \begin{itemize}
+    \item \textbf{Conjugacy:} given $\sigma^2$, the posterior of $\bb$ is Gaussian, so its mean $\E[\bb\given\sigma^2,\by]$ is a \textbf{closed-form formula}.
+    \item Train on that exact mean instead of a sampled $\bb$. Under squared error the loss splits (given $\sigma^2,\by$):
+  \end{itemize}
   \[
-    \E\big[\lVert\bt_1-\hat{\bt}_1\rVert^2 \,\big|\, \bt_2,\by\big]
+    \E\big[\lVert\bb-\hat{\bb}\rVert^2\given\sigma^2,\by\big]
     \;=\;
-    \underbrace{\big\lVert \hat{\bt}_1-\E[\bt_1\given\bt_2,\by]\big\rVert^2}_{\text{Rao--Blackwellised loss}}
+    \big\lVert \hat{\bb}-\E[\bb\given\sigma^2,\by]\big\rVert^2
     \;+\;
-    \underbrace{\Var(\bt_1\given\bt_2,\by)}_{\text{constant in }\bg}.
+    \underbrace{\Tr\!\big(\Var(\bb\given\sigma^2,\by)\big)}_{\text{constant, drops from }\bg}.
   \]
-  \begin{itemize}
-    \item The network regresses onto the \textbf{exact conditional mean} $\E[\bt_1\given\bt_2,\by]$ --- not a noisy draw $\bt_1$.
-    \item The variance term is free of $\bg$, so it \alert{drops out of the gradient}.
-  \end{itemize}
-  \vspace{0.1em}
-  {\footnotesize Add and subtract $\E[\bt_1\given\bt_2,\by]$ inside the norm; the cross term has conditional mean zero. \ ($\bt_2$ is estimated as usual.)}
+  {\footnotesize The network regresses on the exact conditional mean $\E[\bb\given\sigma^2,\by]$ --- same target, \textbf{less noise}.}
 \end{frame}
 
-% --- S8b: the guarantee (gradient total-variance) ---
-\begin{frame}{The gradient variance can only shrink}
-  The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $\bt_2$: $\;g_{\RB}=\E[g\given\bt_2,\by]$. The law of total variance gives
-  \[
-    \Var(g)\;=\;\underbrace{\Var\big(\E[g\given\bt_2,\by]\big)}_{\Var(g_{\RB})}\;+\;\underbrace{\E\big[\Var(g\given\bt_2,\by)\big]}_{\succeq\,0}.
-  \]
-  \begin{columns}[c]
-    \begin{column}{0.62\textwidth}
-      \begin{itemize}
-        \item Hence $\Var(g_{\RB})\preceq\Var(g)$ --- \alert{never larger}, for any model or architecture.
-        \item For a linear network the reduction reaches the fitted weights too.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.36\textwidth}
-      \centering
-      \begin{tikzpicture}[font=\scriptsize]
-        \fill[blue!30] (0,0) rectangle (0.75,2.2);
-        \node[font=\tiny] at (0.375,-0.28){standard};
-        \fill[orange!55] (1.6,0) rectangle (2.35,1.15);
-        \node[font=\tiny] at (1.975,-0.28){RB};
-        \draw[<->] (2.6,1.15) -- (2.6,2.2);
-        \node[font=\tiny,anchor=west] at (2.62,1.68){removed};
-        \node[rotate=90,font=\tiny] at (-0.35,1.1){gradient variance};
-      \end{tikzpicture}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% --- S9: RB result (Bayesian linear regression) ---
-\begin{frame}{Does it pay off? Bayesian linear regression}
+% --- S9: RB result on Bayesian linear regression ---
+\begin{frame}{Does it pay off?}
   \begin{center}
     \includegraphics[width=0.90\textwidth]{rb_hero.png}\\[0.15em]
-    {\scriptsize $p=10$ coefficients; curves are mean $\pm$ 1 s.d. over repeated training runs.}
+    {\scriptsize Bayesian linear regression, $p=10$ coefficients; mean $\pm$ 1 s.d. over repeated training runs.}
   \end{center}
   \vspace{0.1em}
   \begin{itemize}
-    \item Integrate out the coefficients $\bb$; a Gibbs sampler gives the Bayes-optimal floor $L^*$ (green).
+    \item The Gibbs sampler gives the Bayes-optimal floor $L^*$ (green).
     \item RB reaches a \textbf{lower test error} at the small and moderate batches --- where the training gradient is noisiest.
     \item The advantage \textbf{shrinks as the batch grows}: by batch 256 the curves meet.
   \end{itemize}
+\end{frame}
+
+% --- S10: generalisation + the provable guarantee (the contribution) ---
+\begin{frame}{In general}
+  Nothing used linear regression in particular. Split any parameters $\bt=(\bt_1,\bt_2)$ with $\bt_1$ \textbf{conditionally conjugate}, and replace its sampled target by $\E[\bt_1\given\bt_2,\by]$.
+  \vspace{0.3em}
+  \begin{itemize}
+    \item The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $(\bt_2,\by)$, so the law of total variance gives
+      \[ \Var(g)-\Var(g_{\RB})\;=\;\E\big[\Var(g\given\bt_2,\by)\big]\;\succeq\;0. \]
+    \item \alert{Never noisier --- for any model and any architecture.} For a linear network, the guarantee even reaches the fitted weights.
+  \end{itemize}
+  \vspace{0.2em}
+  {\footnotesize Largest gain early in training and on weakly-identified parameters --- when the optimiser most needs a clean signal.}
 \end{frame}
 
 % >>> IS MODULE START (S10-S11 — remove this block if tight for time) <<<
@@ -356,11 +340,11 @@
 \begin{frame}{Conclusion}
   Training a neural Bayes estimator is itself Monte Carlo --- so its training variance can be reduced.
   \begin{itemize}
-    \item \textbf{Rao--Blackwellisation} (needs a conjugate block): a \emph{provable} reduction --- closes $\sim$half the gap to the Bayes floor and matches the standard estimator at $\tfrac14$ the batch size.
+    \item \textbf{Rao--Blackwellisation} (needs a conjugate block): a \emph{provably} lower-variance training gradient, for any model or architecture --- on linear regression it trains to a lower error, most where the batch is small.
     \item \textbf{Importance sampling} (needs nothing special): more general, but unguaranteed and problem-dependent --- here it did not help.
   \end{itemize}
   \vspace{0.5em}
-  \begin{center}\alert{\textbf{Future work:}} many more variance-reduction techniques remain to be tried.\end{center}
+  \alert{\textbf{Future work:}} many more variance-reduction techniques remain to be tried.
 \end{frame}
 
 % --- S13: thanks (NO "questions?"; the chair runs Q&A) ---
