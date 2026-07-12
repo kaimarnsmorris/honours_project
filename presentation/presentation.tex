@@ -147,7 +147,7 @@
 \end{frame}
 
 % --- S3: NBE + amortisation (box v3 + cost plot) ---
-\begin{frame}[t]{Method (2): Neural Bayes estimators}
+\begin{frame}[t]{Method (2): Neural Bayes estimator}
   \vspace{0.8em}
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
@@ -246,18 +246,35 @@
   {\footnotesize Named after the Rao--Blackwell theorem.}
 \end{frame}
 
-% --- S8: RB on the loss + the guarantee (total-variance on slide + bar) ---
-\begin{frame}{Rao--Blackwellising the loss --- and why it must help}
-  Split $\bt=(\tau,\bb)$ with $\bb$ conditionally conjugate; integrate $\bb$ out by replacing its sampled target with $\E[\bb\given\tau,\by]$. For the gradient $g$,
+% --- S8a: RB loss derivation (the maths) ---
+\begin{frame}{Rao--Blackwellising the loss}
+  Squared error; split $\bt=(\tau,\bb)$ with $\bb$ \textbf{conditionally conjugate}, so $\E[\bb\given\tau,\by]$ is closed-form. With $\hat{\bb}$ the network's estimate of $\bb$, condition the loss on $(\tau,\by)$:
+  \[
+    \E\big[\lVert\bb-\hat{\bb}\rVert^2 \,\big|\, \tau,\by\big]
+    \;=\;
+    \underbrace{\big\lVert \hat{\bb}-\E[\bb\given\tau,\by]\big\rVert^2}_{\text{Rao--Blackwellised loss}}
+    \;+\;
+    \underbrace{\Var(\bb\given\tau,\by)}_{\text{constant in }\bg}.
+  \]
+  \begin{itemize}
+    \item The sampled target $\bb$ is replaced by its \textbf{conditional posterior mean} $\E[\bb\given\tau,\by]$.
+    \item The residual $\Var(\bb\given\tau,\by)$ is free of $\bg$ --- it \alert{drops out of the gradient}.
+  \end{itemize}
+  \vspace{0.1em}
+  {\footnotesize So $\bb$ is integrated out \emph{analytically} instead of sampled.}
+\end{frame}
+
+% --- S8b: the guarantee (gradient total-variance) ---
+\begin{frame}{The gradient variance can only shrink}
+  The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $(\tau,\by)$: $\;g_{\RB}=\E[g\given\tau,\by]$. The law of total variance gives
   \[
     \Var(g)\;=\;\underbrace{\Var\big(\E[g\given\tau,\by]\big)}_{\Var(g_{\RB})}\;+\;\underbrace{\E\big[\Var(g\given\tau,\by)\big]}_{\succeq\,0}.
   \]
   \begin{columns}[c]
     \begin{column}{0.62\textwidth}
       \begin{itemize}
-        \item Law of total variance $\Rightarrow\ \Var(g_{\RB})\preceq\Var(g)$.
-        \item \alert{Never increases gradient variance} --- any model, any architecture.
-        \item Linear net: the reduction reaches the fitted weights too.
+        \item Hence $\Var(g_{\RB})\preceq\Var(g)$ --- \alert{never larger}, for any model or architecture.
+        \item For a linear network the reduction reaches the fitted weights too.
       \end{itemize}
     \end{column}
     \begin{column}{0.36\textwidth}
