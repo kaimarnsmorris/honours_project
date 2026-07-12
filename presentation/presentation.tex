@@ -9,6 +9,7 @@
 % ---- Theme: metropolis (modern, clean; needs XeLaTeX/LuaLaTeX or Tectonic) ----
 \usetheme{metropolis}
 \metroset{numbering=fraction, progressbar=foot, block=fill, sectionpage=progressbar}
+\setbeamerfont{section title}{series=\bfseries, size=\large}
 \definecolor{accent}{RGB}{16,78,139}
 \definecolor{floorcol}{RGB}{34,139,34}
 
@@ -183,9 +184,10 @@
 
 % --- S4: does it work? (normal example) ---
 \begin{frame}{Does it work?}
-  A simple test: estimate the mean $\mu$ and scale $\sigma$ of a normal model --- network vs.\ MCMC, on held-out data.
+  A simple test: $y_1,\dots,y_n\sim\Normal(\mu,\sigma^2)$ with $\mu\sim\Normal(0,1)$ and $\sigma\sim\mathrm{Uniform}(0,5)$; estimate $(\mu,\sigma)$.
+  \vspace{0.2em}
   \begin{center}
-    \includegraphics[width=0.9\textwidth]{normal_model_estimates.png}
+    \includegraphics[width=0.9\textwidth]{does_it_work.png}
   \end{center}
   \vspace{0.1em}
   {\footnotesize The network (orange) matches MCMC (blue): it has \alert{learned the posterior-mean map}. \emph{Why}? --- the loss it was trained with.}
@@ -207,7 +209,7 @@
   \end{tabular}
   \end{center}
   \vspace{0.1em}
-  In training we \textbf{approximate} this expectation by \textbf{Monte Carlo}:
+  Bayes risk is not available in closed form, so we \emph{estimate it by Monte Carlo}:
   \[
     L(\bg)\;\approx\;\tfrac{1}{N}\sum_{i=1}^{N}\ell\big(\bt_i,\net(\by_i)\big),\quad (\bt_i,\by_i)\sim\text{model}.
   \]
@@ -224,7 +226,6 @@
     \item That variance is about \emph{how we sample the loss}, not the inference problem --- \alert{so we can reduce it}.
   \end{itemize}
   \vspace{0.3em}
-  {\footnotesize \emph{What if}, for part of the parameters, we could compute a conditional expectation like $\E[\bt_1\given\bt_2,\by]$ in closed form? \alert{That is the first lever.}}
 \end{frame}
 
 % ===================================================================
@@ -246,29 +247,31 @@
   {\footnotesize Named after the Rao--Blackwell theorem.}
 \end{frame}
 
-% --- S8a: RB loss derivation (the maths) ---
+% --- S8a: RB loss derivation (concrete example first, then generalise) ---
 \begin{frame}{Rao--Blackwellising the loss}
-  Squared error; split $\bt=(\tau,\bb)$ with $\bb$ \textbf{conditionally conjugate}, so $\E[\bb\given\tau,\by]$ is closed-form. With $\hat{\bb}$ the network's estimate of $\bb$, condition the loss on $(\tau,\by)$:
+  \textbf{Example: Bayesian linear regression} $\by=X\bb+\bm{\varepsilon}$, $\bm{\varepsilon}\sim\Normal(0,\sigma^2 I)$; parameters $(\sigma^2,\bb)$. \emph{Given} $\sigma^2$, the coefficients $\bb$ have a \textbf{conjugate Gaussian} posterior, so its mean $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}.
+  \vspace{0.3em}
+
+  Under squared error, condition the $\bb$-loss on $(\sigma^2,\by)$ ($\hat{\bb}$ = the network's estimate):
   \[
-    \E\big[\lVert\bb-\hat{\bb}\rVert^2 \,\big|\, \tau,\by\big]
+    \E\big[\lVert\bb-\hat{\bb}\rVert^2 \,\big|\, \sigma^2,\by\big]
     \;=\;
-    \underbrace{\big\lVert \hat{\bb}-\E[\bb\given\tau,\by]\big\rVert^2}_{\text{Rao--Blackwellised loss}}
+    \underbrace{\big\lVert \hat{\bb}-\E[\bb\given\sigma^2,\by]\big\rVert^2}_{\text{Rao--Blackwellised loss}}
     \;+\;
-    \underbrace{\Var(\bb\given\tau,\by)}_{\text{constant in }\bg}.
+    \underbrace{\Var(\bb\given\sigma^2,\by)}_{\text{constant in }\bg}.
   \]
   \begin{itemize}
-    \item The sampled target $\bb$ is replaced by its \textbf{conditional posterior mean} $\E[\bb\given\tau,\by]$.
-    \item The residual $\Var(\bb\given\tau,\by)$ is free of $\bg$ --- it \alert{drops out of the gradient}.
+    \item Substitute the closed-form mean $\E[\bb\given\sigma^2,\by]$ for the sampled target; the residual is free of $\bg$, so it \alert{drops out of the gradient}.
   \end{itemize}
   \vspace{0.1em}
-  {\footnotesize So $\bb$ is integrated out \emph{analytically} instead of sampled.}
+  {\footnotesize \emph{In general:} any split $\bt=(\bt_1,\bt_2)$ whose conditional mean $\E[\bt_1\given\bt_2,\by]$ is available --- integrate $\bt_1$ out analytically.}
 \end{frame}
 
 % --- S8b: the guarantee (gradient total-variance) ---
 \begin{frame}{The gradient variance can only shrink}
-  The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $(\tau,\by)$: $\;g_{\RB}=\E[g\given\tau,\by]$. The law of total variance gives
+  The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $\sigma^2$: $\;g_{\RB}=\E[g\given\sigma^2,\by]$. The law of total variance gives
   \[
-    \Var(g)\;=\;\underbrace{\Var\big(\E[g\given\tau,\by]\big)}_{\Var(g_{\RB})}\;+\;\underbrace{\E\big[\Var(g\given\tau,\by)\big]}_{\succeq\,0}.
+    \Var(g)\;=\;\underbrace{\Var\big(\E[g\given\sigma^2,\by]\big)}_{\Var(g_{\RB})}\;+\;\underbrace{\E\big[\Var(g\given\sigma^2,\by)\big]}_{\succeq\,0}.
   \]
   \begin{columns}[c]
     \begin{column}{0.62\textwidth}
@@ -347,7 +350,7 @@
     \end{column}
   \end{columns}
   \vspace{0.2em}
-  {\footnotesize General, yes --- but here reweighting found no error worth recovering. \alert{No guarantee, and it did not help.}}
+  {\footnotesize \alert{Why it fails here:} the estimator already sits near the Bayes floor, and the little error that remains lives at the $|\rho|\to 1$ boundary --- which the proposals do not target.}
 \end{frame}
 
 % >>> IS MODULE END <<<
