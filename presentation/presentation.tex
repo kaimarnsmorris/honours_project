@@ -220,7 +220,7 @@
     L(\bg)\;\approx\;\tfrac{1}{N}\sum_{i=1}^{N}\ell\big(\bt_i,\net(\by_i)\big),\qquad (\bt_i,\by_i)\sim\text{model}.
   \]
   \begin{itemize}
-    \item So the \textbf{gradient} that drives training is a \alert{random quantity with variance}.
+    \item So the \textbf{gradient} $g(\bg)=\nabla_{\bg} L(\bg)$ that drives training is a \alert{random quantity with variance}.
     \item That variance is about \emph{how we sample the loss}, not the inference problem --- \alert{so we can reduce it}.
   \end{itemize}
   \vspace{0.3em}
