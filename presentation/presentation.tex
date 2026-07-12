@@ -291,18 +291,16 @@
 
 % --- S9: RB result (Bayesian linear regression) ---
 \begin{frame}{Does it pay off? Bayesian linear regression}
-  {\small Integrate out the coefficients $\bb$; a Gibbs sampler gives the Bayes-optimal floor $L^*$.}
-  \vspace{0.2em}
   \begin{center}
     \includegraphics[width=0.97\textwidth]{rb_hero.png}\\[0.2em]
-    {\scriptsize MC (blue) vs RB (orange) vs Bayes floor $L^*$ (green) --- across batch sizes 4, 16, 64, 256.}
+    {\scriptsize MC (blue) vs RB (orange) vs Bayes floor $L^*$ (green), $p=10$ coefficients --- batch sizes 4, 16, 64, 256.}
   \end{center}
-  \vspace{0.4em}
-  \begin{columns}[t]
-    \begin{column}{0.32\textwidth}\centering\small lower loss in\\ \textbf{every} grid cell\end{column}
-    \begin{column}{0.32\textwidth}\centering\small closes \textbf{$\sim$half} ($52\%$)\\ of the gap to $L^*$\end{column}
-    \begin{column}{0.32\textwidth}\centering\small matches the standard NBE\\ at \textbf{$\tfrac14$ the batch size}\end{column}
-  \end{columns}
+  \vspace{0.3em}
+  \begin{itemize}
+    \item Integrate out the coefficients $\bb$; a Gibbs sampler gives the Bayes-optimal floor $L^*$ (green).
+    \item RB reaches a \textbf{lower test error} at the small and moderate batches --- where the training gradient is noisiest.
+    \item The advantage \textbf{shrinks as the batch grows}: by batch 256 the MC gradient is already low-variance, so the curves meet.
+  \end{itemize}
 \end{frame}
 
 % >>> IS MODULE START (S10-S11 — remove this block if tight for time) <<<
