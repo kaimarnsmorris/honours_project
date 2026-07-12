@@ -246,19 +246,13 @@
 
 % --- S8: concrete mechanism on Bayesian linear regression ---
 \begin{frame}{Bayesian linear regression: a cleaner target}
-  Model $\by=X\bb+\bm\varepsilon$, $\bm\varepsilon\sim\Normal(0,\sigma^2 I)$ --- the parameters are the coefficients $\bb$ and the noise variance $\sigma^2$.
-  \begin{itemize}
-    \item \textbf{Conjugacy:} given $\sigma^2$, the posterior of $\bb$ is Gaussian, so its mean $\E[\bb\given\sigma^2,\by]$ is a \textbf{closed-form formula}.
-    \item Train on that exact mean instead of a sampled $\bb$. Under squared error the loss splits (given $\sigma^2,\by$):
-  \end{itemize}
-  \[
-    \E\big[\lVert\bb-\hat{\bb}\rVert^2\given\sigma^2,\by\big]
-    \;=\;
-    \big\lVert \hat{\bb}-\E[\bb\given\sigma^2,\by]\big\rVert^2
-    \;+\;
-    \underbrace{\Tr\!\big(\Var(\bb\given\sigma^2,\by)\big)}_{\text{constant, drops from }\bg}.
-  \]
-  {\footnotesize The network regresses on the exact conditional mean $\E[\bb\given\sigma^2,\by]$ --- same target, \textbf{less noise}.}
+  Model $\by=X\bb+\bm\varepsilon$, $\bm\varepsilon\sim\Normal(0,\sigma^2 I)$; parameters $(\bb,\sigma^2)$. Given $\sigma^2$ the coefficients $\bb$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}. Condition the risk on $(\sigma^2,\by)$ and expand:
+  \begin{align*}
+    L(\bg) &= \E_{\bt,\by}\big[\lVert\bt-\net(\by)\rVert^2\big] \\
+    &= \E_{\sigma^2,\by}\Big[\,\E\big[\lVert\bt-\net(\by)\rVert^2 \,\big|\, \sigma^2,\by\big]\,\Big] \\
+    &= \E_{\sigma^2,\by}\Big[\,\underbrace{\big\lVert \net(\by)-\E[\bt\given\sigma^2,\by]\big\rVert^2}_{\text{regress on the clean target}} \;+\; \underbrace{\Tr\!\big(\Var(\bt\given\sigma^2,\by)\big)}_{\text{constant, drops from }\bg}\,\Big]
+  \end{align*}
+  {\footnotesize Given $\sigma^2$ only $\bb$ is random, so the clean target $\E[\bt\given\sigma^2,\by]$ plugs in the closed-form $\E[\bb\given\sigma^2,\by]$ --- replacing the noisy sampled $\bb$.}
 \end{frame}
 
 % --- S9: RB result on Bayesian linear regression ---
