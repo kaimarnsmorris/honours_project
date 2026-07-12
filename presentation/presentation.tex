@@ -184,7 +184,7 @@
 
 % --- S4: does it work? (normal example) ---
 \begin{frame}{Does it work?}
-  A simple test: $y_1,\dots,y_n\sim\Normal(\mu,\sigma^2)$ with $\mu\sim\Normal(0,1)$ and $\sigma\sim\mathrm{Uniform}(0,5)$; estimate $(\mu,\sigma)$.
+  A simple test: $y_1,\dots,y_n\sim\Normal(\mu,\sigma^2)$ with $\mu\sim\Normal(0,1)$ and $\sigma\sim\mathrm{Uniform}(0,5)$.
   \vspace{0.2em}
   \begin{center}
     \includegraphics[width=0.9\textwidth]{does_it_work.png}
@@ -232,46 +232,40 @@
 \section{Idea 1: Rao--Blackwellisation}
 % ===================================================================
 
-% --- S7: Rao-Blackwell idea ---
-\begin{frame}{The trick}
-  A classical trick for killing Monte Carlo noise.
+% --- S7: analytical conditional posteriors (the enabling condition) ---
+\begin{frame}{Analytical conditional posteriors}
   \begin{itemize}
-    \item Estimating an average by sampling? If part of it can be computed \textbf{exactly}, do that --- replace the sampled piece by its exact \textbf{conditional mean}.
-    \item Conditioning-and-averaging can only \emph{remove} variance, never add it.
+    \item Split the parameters $\bt=(\bt_1,\bt_2)$. For many models, \emph{conditioning} on $\bt_2$ leaves the posterior of $\bt_1$ in \textbf{closed form}:
+      \[ p(\bt_1\given\bt_2,\by)\ \text{known} \quad\Longrightarrow\quad \E[\bt_1\given\bt_2,\by]\ \text{is analytic}. \]
+    \item This is \textbf{conditional conjugacy} --- the same structure that makes \emph{Gibbs sampling} possible.
+    \item \alert{So: don't sample $\bt_1$ --- integrate it out using its exact conditional mean.}
   \end{itemize}
-  \vspace{0.6em}
-  \begin{center}\small
-  noisy draws \; $\longrightarrow$ \; replace one block by its exact mean \; $\longrightarrow$ \; \alert{tighter estimate}
-  \end{center}
-  \vspace{0.5em}
-  {\footnotesize Named after the Rao--Blackwell theorem.}
+  \vspace{0.4em}
+  {\footnotesize Example --- Bayesian linear regression $\by=X\bb+\bm{\varepsilon}$: given the noise variance $\sigma^2$, the coefficients $\bb$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is closed-form \ ($\bt_1=\bb$, $\bt_2=\sigma^2$).}
 \end{frame}
 
-% --- S8a: RB loss derivation (concrete example first, then generalise) ---
-\begin{frame}{Rao--Blackwellising the loss}
-  \textbf{Example: Bayesian linear regression} $\by=X\bb+\bm{\varepsilon}$, $\bm{\varepsilon}\sim\Normal(0,\sigma^2 I)$; parameters $(\sigma^2,\bb)$. \emph{Given} $\sigma^2$, the coefficients $\bb$ have a \textbf{conjugate Gaussian} posterior, so its mean $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}.
-  \vspace{0.3em}
-
-  Under squared error, condition the $\bb$-loss on $(\sigma^2,\by)$ ($\hat{\bb}$ = the network's estimate):
+% --- S8a: expanding the Bayes risk (the derivation) ---
+\begin{frame}{Expanding the Bayes risk}
+  Under squared error, expand the risk by conditioning on $(\bt_2,\by)$ \ ($\hat{\bt}_1$ = the network's estimate of $\bt_1$):
   \[
-    \E\big[\lVert\bb-\hat{\bb}\rVert^2 \,\big|\, \sigma^2,\by\big]
+    \E\big[\lVert\bt_1-\hat{\bt}_1\rVert^2 \,\big|\, \bt_2,\by\big]
     \;=\;
-    \underbrace{\big\lVert \hat{\bb}-\E[\bb\given\sigma^2,\by]\big\rVert^2}_{\text{Rao--Blackwellised loss}}
+    \underbrace{\big\lVert \hat{\bt}_1-\E[\bt_1\given\bt_2,\by]\big\rVert^2}_{\text{Rao--Blackwellised loss}}
     \;+\;
-    \underbrace{\Var(\bb\given\sigma^2,\by)}_{\text{constant in }\bg}.
+    \underbrace{\Var(\bt_1\given\bt_2,\by)}_{\text{constant in }\bg}.
   \]
   \begin{itemize}
-    \item Substitute the closed-form mean $\E[\bb\given\sigma^2,\by]$ for the sampled target; the residual is free of $\bg$, so it \alert{drops out of the gradient}.
+    \item The target for $\bt_1$ becomes its \textbf{conditional posterior mean} $\E[\bt_1\given\bt_2,\by]$ --- computed exactly, not sampled.
+    \item The residual is free of $\bg$: averaging over $(\bt_2,\by)$, it is a \alert{constant that drops out of the gradient}.
+    \item So $\bt_1$ is integrated out \emph{analytically} instead of sampled.
   \end{itemize}
-  \vspace{0.1em}
-  {\footnotesize \emph{In general:} any split $\bt=(\bt_1,\bt_2)$ whose conditional mean $\E[\bt_1\given\bt_2,\by]$ is available --- integrate $\bt_1$ out analytically.}
 \end{frame}
 
 % --- S8b: the guarantee (gradient total-variance) ---
 \begin{frame}{The gradient variance can only shrink}
-  The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $\sigma^2$: $\;g_{\RB}=\E[g\given\sigma^2,\by]$. The law of total variance gives
+  The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $\bt_2$: $\;g_{\RB}=\E[g\given\bt_2,\by]$. The law of total variance gives
   \[
-    \Var(g)\;=\;\underbrace{\Var\big(\E[g\given\sigma^2,\by]\big)}_{\Var(g_{\RB})}\;+\;\underbrace{\E\big[\Var(g\given\sigma^2,\by)\big]}_{\succeq\,0}.
+    \Var(g)\;=\;\underbrace{\Var\big(\E[g\given\bt_2,\by]\big)}_{\Var(g_{\RB})}\;+\;\underbrace{\E\big[\Var(g\given\bt_2,\by)\big]}_{\succeq\,0}.
   \]
   \begin{columns}[c]
     \begin{column}{0.62\textwidth}
