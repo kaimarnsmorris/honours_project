@@ -134,10 +134,10 @@
       \draw[->, gray] (0.8,-0.56) -- (1.35,-0.945);
       \node[anchor=south east, font=\scriptsize] at (2.5,-1.7) {$\hat{\bt}=\tfrac1S\sum_s \bt^{(s)}$};
     \end{scope}
-    % aligned labels underneath
+    % labels: sampler under the tall box; dataset/estimate directly under their own boxes
     \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {MCMC sampler};
-    \node[font=\footnotesize, text=gray] at (y   |- maplab) {dataset};
-    \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
+    \node[font=\footnotesize, text=gray, below=2mm of y]   {dataset};
+    \node[font=\footnotesize, text=gray, below=2mm of out] {posterior estimate};
   \end{tikzpicture}
   \end{center}
   \vspace{0.2em}
@@ -168,10 +168,10 @@
       \foreach \j in {1,2,3,4,5} \fill[accent] (h\j) circle (2pt);
       \foreach \k in {1,2} \fill[accent] (o\k) circle (2pt);
     \end{scope}
-    % aligned labels underneath
+    % labels: network under the tall box; dataset/estimate directly under their own boxes
     \node[font=\footnotesize, text=gray, below=2mm of map] (maplab) {neural network};
-    \node[font=\footnotesize, text=gray] at (y   |- maplab) {dataset};
-    \node[font=\footnotesize, text=gray] at (out |- maplab) {posterior estimate};
+    \node[font=\footnotesize, text=gray, below=2mm of y]   {dataset};
+    \node[font=\footnotesize, text=gray, below=2mm of out] {posterior estimate};
   \end{tikzpicture}
   \end{center}
   \vspace{0.2em}
@@ -190,7 +190,7 @@
     \includegraphics[width=0.9\textwidth]{does_it_work.png}
   \end{center}
   \vspace{0.1em}
-  {\footnotesize The network (orange) matches MCMC (blue): it has \alert{learned the posterior-mean map}. \emph{Why}? --- the loss it was trained with.}
+  {\footnotesize The network (orange) matches MCMC (blue): it has \alert{learned the posterior-mean map}.}
 \end{frame}
 
 % --- S5: loss functions pick the summary (last Background slide) ---
@@ -232,21 +232,21 @@
 \section{Idea 1: Rao--Blackwellisation}
 % ===================================================================
 
-% --- S7: analytical conditional posteriors (the enabling condition) ---
-\begin{frame}{Analytical conditional posteriors}
+% --- S7: Rao-Blackwellising the Bayes risk (general loss) ---
+\begin{frame}{Rao--Blackwellising the Bayes risk}
   \begin{itemize}
-    \item Split the parameters $\bt=(\bt_1,\bt_2)$. For many models, \emph{conditioning} on $\bt_2$ leaves the posterior of $\bt_1$ in \textbf{closed form}:
-      \[ p(\bt_1\given\bt_2,\by)\ \text{known} \quad\Longrightarrow\quad \E[\bt_1\given\bt_2,\by]\ \text{is analytic}. \]
-    \item This is \textbf{conditional conjugacy} --- the same structure that makes \emph{Gibbs sampling} possible.
-    \item \alert{So: don't sample $\bt_1$ --- integrate it out using its exact conditional mean.}
+    \item Some models are \textbf{conditionally conjugate}: with $\bt=(\bt_1,\bt_2)$, conditioning on $\bt_2$ leaves $p(\bt_1\given\bt_2,\by)$ in closed form --- so $\E[\bt_1\given\bt_2,\by]$ is \textbf{analytic}.
+    \item Training minimises the \textbf{Bayes risk}, normally estimated by \emph{sampling} $(\bt,\by)$:
+      \[ L(\bg)=\E_{\bt,\by}\big[\ell(\bt,\net(\by))\big]. \]
+    \item \alert{Rao--Blackwellise first:} condition on $(\bt_2,\by)$ and do the $\bt_1$-average \emph{analytically}, before the Monte Carlo estimate:
+      \[ L(\bg)=\E_{\bt_2,\by}\big[\,\underbrace{\E\big[\ell(\bt,\net(\by))\given\bt_2,\by\big]}_{\bt_1\ \text{integrated out exactly, not sampled}}\,\big]. \]
   \end{itemize}
-  \vspace{0.4em}
-  {\footnotesize Example --- Bayesian linear regression $\by=X\bb+\bm{\varepsilon}$: given the noise variance $\sigma^2$, the coefficients $\bb$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is closed-form \ ($\bt_1=\bb$, $\bt_2=\sigma^2$).}
+  {\footnotesize Same risk, but one noisy dimension is gone $\Rightarrow$ a \textbf{lower-variance} estimate (e.g. linear regression: fix the noise variance $\bt_2$, the coefficients $\bt_1$ are Gaussian).}
 \end{frame}
 
-% --- S8a: expanding the Bayes risk (the derivation) ---
-\begin{frame}{Expanding the Bayes risk}
-  Under squared error, expand the risk by conditioning on $(\bt_2,\by)$ \ ($\hat{\bt}_1$ = the network's estimate of $\bt_1$):
+% --- S8a: the squared-error case (conditional-mean target) ---
+\begin{frame}{Squared error: the target is the conditional mean}
+  Under squared error, take the integrated block $\ell=\lVert\bt_1-\hat{\bt}_1\rVert^2$ \ ($\hat{\bt}_1$ = the network's estimate). Its inner expectation splits:
   \[
     \E\big[\lVert\bt_1-\hat{\bt}_1\rVert^2 \,\big|\, \bt_2,\by\big]
     \;=\;
@@ -255,10 +255,11 @@
     \underbrace{\Var(\bt_1\given\bt_2,\by)}_{\text{constant in }\bg}.
   \]
   \begin{itemize}
-    \item The target for $\bt_1$ becomes its \textbf{conditional posterior mean} $\E[\bt_1\given\bt_2,\by]$ --- computed exactly, not sampled.
-    \item The residual is free of $\bg$: averaging over $(\bt_2,\by)$, it is a \alert{constant that drops out of the gradient}.
-    \item So $\bt_1$ is integrated out \emph{analytically} instead of sampled.
+    \item The network regresses onto the \textbf{exact conditional mean} $\E[\bt_1\given\bt_2,\by]$ --- not a noisy draw $\bt_1$.
+    \item The variance term is free of $\bg$, so it \alert{drops out of the gradient}.
   \end{itemize}
+  \vspace{0.1em}
+  {\footnotesize Add and subtract $\E[\bt_1\given\bt_2,\by]$ inside the norm; the cross term has conditional mean zero. \ ($\bt_2$ is estimated as usual.)}
 \end{frame}
 
 % --- S8b: the guarantee (gradient total-variance) ---
@@ -359,7 +360,7 @@
     \item \textbf{Importance sampling} (needs nothing special): more general, but unguaranteed and problem-dependent --- here it did not help.
   \end{itemize}
   \vspace{0.5em}
-  \begin{center}\alert{\textbf{Conjugacy --- the classical trick behind Gibbs sampling --- is just as useful for \emph{training} the estimators meant to replace it.}}\end{center}
+  \begin{center}\alert{\textbf{Future work:}} many more variance-reduction techniques remain to be tried.\end{center}
 \end{frame}
 
 % --- S13: thanks (NO "questions?"; the chair runs Q&A) ---
