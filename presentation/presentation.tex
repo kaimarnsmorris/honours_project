@@ -242,18 +242,17 @@
 
 % --- The idea: training is Monte Carlo (back to the Bayes risk) ---
 \begin{frame}{The idea: training is Monte Carlo}
-  Back to the Bayes risk. \textbf{Goal:} choose the network weights $\bg$ that minimise
+  \textbf{Goal:} choose the network weights $\bg$ that minimise
   \[ L(\bg)=\E_{\bt,\by}\big[\ell\big(\bt,\net(\by)\big)\big]. \]
   No closed form --- so each step estimates it by \textbf{Monte Carlo} on a minibatch and takes a \textbf{stochastic-gradient} step:
-  \[
-    \widehat{L}(\bg)=\frac{1}{B}\sum_{b=1}^{B}\ell\big(\bt^{[b]},\net(\by^{[b]})\big),
-    \qquad \bg \leftarrow \bg - \eta\,\nabla_{\bg}\widehat{L}(\bg).
-  \]
-  {\footnotesize (each minibatch draws fresh $(\bt^{[b]},\by^{[b]})\sim\text{model}$.)}
-  \begin{itemize}
-    \item \alert{Insight:} the minibatch gradient $\nabla_{\bg}\widehat{L}$ is a \textbf{random estimate} --- it has variance, from \emph{how we sample the loss}, not from the inference problem.
-    \item So we can \alert{apply variance-reduction techniques} to speed up and stabilise training.
-  \end{itemize}
+  \begin{align*}
+    \widehat{L}(\bg) &= \frac{1}{B}\sum_{b=1}^{B}\ell\big(\bt^{[b]},\net(\by^{[b]})\big),
+      \qquad (\bt^{[b]},\by^{[b]})\sim\text{model}, \\[0.3em]
+    \bg &\leftarrow \bg - \eta\,\nabla_{\bg}\widehat{L}(\bg).
+  \end{align*}
+
+  \vspace{0.6em}
+  {\footnotesize \alert{Insight:} the minibatch gradient $\nabla_{\bg}\widehat{L}$ is a \textbf{random estimate} --- it has variance, so we can \alert{apply variance-reduction techniques} to speed up and stabilise training.}
 \end{frame}
 
 
@@ -310,26 +309,26 @@
 \section{Idea 2: Importance sampling}
 % ===================================================================
 
-% --- S10: importance sampling — the idea (reweighting identity) ---
+% --- S10: importance sampling — the idea (empirical IS estimator) ---
 \begin{frame}{Importance sampling: A more general lever}
-  \textbf{No conjugacy required} --- unlike Rao--Blackwell. Draw the parameters from a \textbf{proposal} $q(\bt)$ instead of the prior $p(\bt)$, then \textbf{reweight} to leave the risk unchanged:
+  \textbf{Another commonly used variance-reduction technique} --- and, unlike Rao--Blackwell, it needs \textbf{no conjugacy}.
   \[
-    L(\bg)=\E_{\bt\sim p,\,\by}\big[\ell(\bt,\net(\by))\big]
-          =\E_{\bt\sim q,\,\by}\big[\,{\color{accent}w(\bt)}\,\ell(\bt,\net(\by))\,\big],
-          \qquad {\color{accent}w(\bt)=\tfrac{p(\bt)}{q(\bt)}}.
+    \widehat{L}_{\mathrm{IS}}(\bg)=\frac{1}{B}\sum_{b=1}^{B} {\color{accent}w(\bt^{[b]})}\,\ell\big(\bt^{[b]},\net(\by^{[b]})\big),
+    \qquad \bt^{[b]}\sim q,\quad {\color{accent}w(\bt)=\tfrac{p(\bt)}{q(\bt)}}.
   \]
   \begin{itemize}
-    \item Unbiased for \alert{any} proposal $q$: the weight $w=p/q$ undoes the change of measure, so we still target the original prior.
-    \item Point $q$ at the \textbf{informative regions} --- spend more of the budget where the estimator has the most to learn.
-    \item But \alert{no guarantee}: bad weights inflate variance and collapse the effective sample size.
+    \item Draw the parameters from a \textbf{proposal} $q(\bt)$ instead of the prior $p(\bt)$, and \textbf{reweight} each draw.
+    \item Unbiased for \alert{any} proposal $q$ --- the weight $w=p/q$ undoes the change of measure.
+    \item In general, a \textbf{careful choice of $q$} can \alert{lower the variance}.
+    \item But \alert{no guarantee} --- a poor proposal \emph{inflates} the variance instead.
   \end{itemize}
 \end{frame}
 
 % --- S10.5: the AR(1) test case + the proposal ---
 \begin{frame}[t]{A test case: AR(1)}
-  \vspace{0.4em}
-  AR(1) test: the extreme edges (tiny $\sigma$, $|\rho|\to1$) \emph{look} hardest, so we oversample them.
-  \vspace{0.3em}
+  \vspace{0.1em}
+  AR(1) model $x_t=\rho\,x_{t-1}+\varepsilon_t$, $\varepsilon_t\sim\Normal(0,\sigma^2)$, with priors $\rho\sim\mathcal{U}(-1,1)$ and $\sigma\sim\mathcal{U}(0,A)$.
+  \vspace{0.1em}
   \begin{columns}[c]
     \begin{column}{0.58\textwidth}
       \centering\includegraphics[width=\textwidth]{gibbs_vs_nn.png}\\[0.1em]
@@ -356,7 +355,9 @@
     \end{column}
   \end{columns}
   \vspace{0.1em}
-  %{\footnotesize \alert{Why it fails:} the GRU already sits near the Bayes floor --- little reducible error for any proposal to recover. (Those $|\rho|\to1$ edges only \emph{looked} hard: the easiest to estimate $\rho$ from.)}
+  \begin{itemize}
+    \item \alert{A non-conclusive result:} no proposal beat the uniform baseline \emph{here} --- but the GRU already sits near the Bayes floor, leaving little for any proposal to recover.
+  \end{itemize}
 \end{frame}
 
 % >>> IS MODULE END <<<
@@ -367,13 +368,13 @@
 
 % --- S12: conclusion (results + significance + punchline) ---
 \begin{frame}{Conclusion}
-  Training a neural Bayes estimator involves Monte Carlo --- so its training variance can be reduced.
+  \textbf{Goal:} improve training for \textbf{neural Bayes estimators} by more efficient \textbf{sampling of the Bayes risk}.
   \begin{itemize}
     \item \textbf{Rao--Blackwellisation} (needs a conjugate block): a \emph{provably} lower-variance training gradient, for any model or architecture --- on linear regression it trains to a lower error, most where the batch is small.
     \item \textbf{Importance sampling} (needs nothing special): more general, but unguaranteed and problem-dependent --- here it did not help.
   \end{itemize}
   \vspace{0.5em}
-  \alert{\textbf{Future work:}} many more variance-reduction techniques remain to be tried.
+  \alert{\textbf{Future work:}} many more variance-reduction techniques remain to be tried --- particularly \textbf{control variates}.
 \end{frame}
 
 % --- S13: thanks (NO "questions?"; the chair runs Q&A) ---
