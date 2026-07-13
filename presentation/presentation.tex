@@ -12,6 +12,7 @@
 \setbeamerfont{section title}{series=\bfseries, size=\large}
 \definecolor{accent}{RGB}{16,78,139}
 \definecolor{floorcol}{RGB}{34,139,34}
+\definecolor{warmcol}{RGB}{217,95,2}
 
 % ---- Maths ----
 \usepackage{amsmath,amssymb}
@@ -76,7 +77,7 @@
   \vspace{0.2em}
   \begin{center}
   \begin{tikzpicture}[font=\scriptsize]
-    \draw[->] (-3,0) -- (3.2,0) node[right]{$\theta$};
+    \draw[->] (-3,0) -- (3.2,0) node[right]{$\bt$};
     \draw[gray, thick] plot[smooth] coordinates {(-3,0.05)(-2,0.16)(-1,0.29)(0,0.35)(1,0.29)(2,0.16)(3,0.05)};
     \node[gray] at (-2.15,0.35){prior};
     \draw[accent, very thick] plot[smooth] coordinates {(-0.6,0.03)(0,0.18)(0.4,0.5)(0.8,0.92)(1.2,0.5)(1.6,0.18)(2.2,0.03)};
@@ -113,20 +114,20 @@
 
 % --- S2: MCMC (box v2) ---
 \begin{frame}[t]{Method (1): Markov chain Monte Carlo}
-  \vspace{0.8em}
+  \vspace{0.1em}
   \begin{center}
   \begin{tikzpicture}[>=Stealth, every node/.style={font=\small}]
     \node (y)   [draw, rounded corners, minimum height=12mm, minimum width=16mm] {$\by$};
-    \node (map) [draw, fill=black!8, rounded corners, minimum width=54mm, minimum height=37mm, right=13mm of y] {};
+    \node (map) [draw, fill=black!8, rounded corners, minimum width=54mm, minimum height=30mm, right=13mm of y] {};
     \node (out) [draw, rounded corners, minimum height=12mm, minimum width=18mm, right=13mm of map] {$\hat{\bt}$};
     \draw[->, thick] (y) -- (map);
     \draw[->, thick] (map) -- (out);
     % contents of the map box: sample (top-left) -> histogram -> estimate (bottom-right), colinear
-    \begin{scope}[shift={(map.center)}]
+    \begin{scope}[shift={(map.center)}, scale=0.85, transform shape]
       \node[anchor=north west, font=\scriptsize] at (-2.5,1.7) {$\bt^{(1)},\dots,\bt^{(S)}\sim p(\bt\given\by)$};
       \draw[->, gray] (-1.35,0.945) -- (-0.8,0.56);
       \begin{scope}[shift={(-0.7,-0.32)}]
-        \draw[->] (0,0) -- (1.75,0) node[right,font=\tiny]{$\theta$};
+        \draw[->] (0,0) -- (1.75,0) node[right,font=\tiny]{$\bt$};
         \draw[->] (0,0) -- (0,0.65);
         \node[left, font=\tiny] at (0,0.35) {$\#$};
         \foreach \x/\h in {0.10/0.14, 0.32/0.30, 0.54/0.44, 0.76/0.35, 0.98/0.20, 1.20/0.09}
@@ -141,10 +142,9 @@
     \node[font=\footnotesize, text=gray, below=2mm of out] {posterior estimate};
   \end{tikzpicture}
   \end{center}
-  \vspace{0.2em}
   \begin{itemize}
-    \item Accurate and general --- but must be \alert{re-run from scratch for every new $\by$}, and can be slow.
-    \item Do inference for \emph{many} datasets and you pay that cost \emph{every time}.
+    \item $\bt^{(1)},\dots,\bt^{(S)}$ come from a \textbf{Markov chain} with the posterior as its stationary distribution --- accurate and general, but can be \alert{slow} to converge.
+    \item And it must be \alert{re-run from scratch for every new dataset $\by$} --- costly when you have many.
   \end{itemize}
 \end{frame}
 
@@ -183,7 +183,8 @@
   \end{itemize}
 \end{frame}
 
-% --- S4: does it work? (normal example) ---
+% --- S4: does it work? (normal example) --- TEMPORARILY DISABLED (\iffalse ... \fi) ---
+\iffalse
 \begin{frame}{Does it work?}
   A simple test: $y_1,\dots,y_n\sim\Normal(\mu,\sigma^2)$ with $\mu\sim\Normal(0,1)$ and $\sigma\sim\mathrm{Uniform}(0,5)$.
   \vspace{0.2em}
@@ -193,6 +194,7 @@
   \vspace{0.1em}
   {\footnotesize The network (orange) matches MCMC (blue): it has \alert{learned the posterior-mean map}.}
 \end{frame}
+\fi
 
 % --- S5: loss functions pick the summary (last Background slide) ---
 \begin{frame}{The loss picks which summary you estimate}
@@ -224,10 +226,11 @@
   \]
   \begin{itemize}
     \item So the \textbf{gradient} $g(\bg)=\nabla_{\bg} L(\bg)$ that drives training is a \alert{random quantity with variance}.
-    \item That variance is about \emph{how we sample the loss}, not the inference problem --- \alert{so we can reduce it}.
+    \item That variance is about \emph{how we sample the loss}, not the inference problem --- \alert{so we can apply variance reduction techniques}.
   \end{itemize}
   \vspace{0.3em}
 \end{frame}
+
 
 % ===================================================================
 \section{Idea 1: Rao--Blackwellisation}
@@ -235,30 +238,30 @@
 
 % --- S7: the trick (RB intuition + our insight: apply it to training) ---
 \begin{frame}{The trick}
-  \textbf{Some models have conditional conjugacy.} Split the parameters $\bt=(\bt_1,\bt_2)$: conditioning on $\bt_2$ leaves the posterior of $\bt_1$ in \textbf{closed form}, so its mean $\E[\bt_1\given\bt_2,\by]$ is analytic.
+  The network trains on $(\by,\bt)$ pairs where the target $\bt$ is a \textbf{noisy draw}. Classical \textbf{Rao--Blackwell:} replacing a sampled quantity by its \textbf{conditional mean} keeps the same expectation but \alert{can only \emph{reduce} variance}.
   \begin{itemize}
-    \item The network trains on $(\by,\bt)$ pairs where the target $\bt$ is a \textbf{noisy draw}. \alert{Replace the conjugate block $\bt_1$ with its exact mean $\E[\bt_1\given\bt_2,\by]$ --- a cleaner label.}
-    \item This is classical \textbf{Rao--Blackwell}: replacing a sampled piece by its conditional mean can only \emph{reduce} variance.
+    \item Split $\bt=(\bt_1,\bt_2)$ and condition on $\bt_2$: swap the noisy target for $\E[\bt\given\bt_2,\by]$ --- a \textbf{cleaner label}, at no cost to what we estimate.
+    \item That conditional mean is \textbf{closed-form} exactly when the block $\bt_1$ is \textbf{conditionally conjugate} --- the one thing this needs.
   \end{itemize}
   \vspace{0.3em}
-  {\footnotesize \textbf{Example} --- Bayesian linear regression: given the noise variance $\sigma^2\,(=\bt_2)$, the coefficients $\bb\,(=\bt_1)$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is closed-form.}
+  {\footnotesize \textbf{Example} --- Bayesian linear regression: given the noise variance $\sigma^2\,=\bt_2$, the coefficients $\bb\,=\bt_1$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is closed-form.}
 \end{frame}
 
 % --- S8: concrete mechanism on Bayesian linear regression ---
 \begin{frame}{Bayesian linear regression: a cleaner target}
-  Model $\by=X\bb+\bm\varepsilon$, $\bm\varepsilon\sim\Normal(0,\sigma^2 I)$; parameters $(\bb,\sigma^2)$. Given $\sigma^2$ the coefficients $\bb$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}. Condition the risk on $(\sigma^2,\by)$ and expand:
+  Model $\by=X\bb+\bm\varepsilon$, $\bm\varepsilon\sim\Normal(0,\sigma^2 I)$; parameters $(\bb,\sigma^2)$. $\E[\bb\given\sigma^2,\by]$ and therefore $\E[\bt\given\sigma^2,\by]$ is available in \textbf{closed form}.
   \begin{align*}
     L(\bg) &= \E_{\bt,\by}\big[\lVert\bt-\net(\by)\rVert^2\big] \\
     &= \E_{\sigma^2,\by}\Big[\,\E\big[\lVert\bt-\net(\by)\rVert^2 \,\big|\, \sigma^2,\by\big]\,\Big] \\
-    &= \E_{\sigma^2,\by}\Big[\,\underbrace{\big\lVert \net(\by)-\E[\bt\given\sigma^2,\by]\big\rVert^2}_{\text{regress on the clean target}} \;+\; \underbrace{\Tr\!\big(\Var(\bt\given\sigma^2,\by)\big)}_{\text{constant, drops from }\bg}\,\Big]
+    &= \E_{\sigma^2,\by}\Big[\,\underbrace{\big\lVert \net(\by)-\E[\bt\given\sigma^2,\by]\big\rVert^2}_{\text{analytic function of $\sigma^2,\by$}} \;+\; \underbrace{\Tr\!\big(\Var(\bt\given\sigma^2,\by)\big)}_{\text{constant in}\bg}\,\Big]
   \end{align*}
-  {\footnotesize Given $\sigma^2$ only $\bb$ is random, so the clean target $\E[\bt\given\sigma^2,\by]$ plugs in the closed-form $\E[\bb\given\sigma^2,\by]$ --- replacing the noisy sampled $\bb$.}
+  Rao--Blackwell tells us that using this clean target makes the loss estimate $\hat L(\bg)$ and its gradient $\hat g=\nabla_{\bg}\hat L$ \textbf{less noisy} --- same mean, never larger variance.
 \end{frame}
 
 % --- S9: RB result on Bayesian linear regression ---
 \begin{frame}{Does it pay off?}
   \begin{center}
-    \includegraphics[width=0.90\textwidth]{rb_hero.png}\\[0.15em]
+    \includegraphics[width=\textwidth]{rb_hero.png}\\[0.15em]
     {\scriptsize Bayesian linear regression, $p=10$ coefficients; mean $\pm$ 1 s.d. over repeated training runs.}
   \end{center}
   \vspace{0.1em}
@@ -271,15 +274,32 @@
 
 % --- S10: generalisation + the provable guarantee (the contribution) ---
 \begin{frame}{In general}
-  Nothing used linear regression in particular. Split any parameters $\bt=(\bt_1,\bt_2)$ with $\bt_1$ \textbf{conditionally conjugate}, and replace its sampled target by $\E[\bt_1\given\bt_2,\by]$.
-  \vspace{0.3em}
+  Nothing used linear regression in particular. Split any parameters $\bt=(\bt_1,\bt_2)$ with $\bt_1$ \textbf{conditionally conjugate}, such that $\E[\ell\given\bt_2,\by]$ is available in closed form.
+  \vspace{0.15em}
   \begin{itemize}
-    \item The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $(\bt_2,\by)$, so the law of total variance gives
-      \[ \Var(g)-\Var(g_{\RB})\;=\;\E\big[\Var(g\given\bt_2,\by)\big]\;\succeq\;0. \]
-    \item \alert{Never noisier --- for any model and any architecture.} For a linear network, the guarantee even reaches the fitted weights.
+    \item The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $(\bt_2,\by)$, so the law of total variance makes it \alert{never noisier} --- for any model and any architecture.
+    \item For a linear network, the guarantee even reaches the fitted weights.
   \end{itemize}
-  \vspace{0.2em}
-  {\footnotesize Largest gain early in training and on weakly-identified parameters --- when the optimiser most needs a clean signal.}
+  \vspace{-0.1em}
+  \begin{center}
+  \begin{tikzpicture}[
+      >=Stealth,
+      box/.style={draw, rounded corners, align=center, inner sep=5pt, font=\small},
+      estmc/.style={draw=warmcol, thick, rounded corners, align=center, inner sep=5pt, font=\small, fill=warmcol!10},
+      estrb/.style={draw=floorcol, thick, rounded corners, align=center, inner sep=5pt, font=\small, fill=floorcol!12},
+      lbl/.style={font=\footnotesize, text=accent, inner sep=3pt}
+    ]
+    \node[box] (A) {$L=\E_{\bt,\by}\big[\ell(\bt,\net(\by))\big]$};
+    \node[estmc] (B) [right=26mm of A] {$\hat L_{\MC}$};
+    \node[box] (C) [below=8mm of A] {$L=\E_{\bt_2,\by}\big[\,\E[\ell\given\bt_2,\by]\,\big]$};
+    \node[estrb] (D) [below=8mm of B] {$\hat L_{\RB}$};
+    \draw[->, thick] (A) -- node[above, lbl]{sample $(\bt,\by)$} (B);
+    \draw[->, thick] (A) -- node[right, lbl]{tower rule} (C);
+    \draw[->, thick] (C) -- node[above, lbl]{sample $(\bt_2,\by)$} (D);
+    \node[font=\scriptsize, text=warmcol, below=1.2mm of B] {noisy};
+    \node[font=\scriptsize, text=floorcol, below=1.2mm of D] {less noisy};
+  \end{tikzpicture}
+  \end{center}
 \end{frame}
 
 % >>> IS MODULE START (S10-S11 — remove this block if tight for time) <<<
@@ -288,40 +308,53 @@
 \section{Idea 2: importance sampling}
 % ===================================================================
 
-% --- S10: importance sampling idea ---
+% --- S10: importance sampling — the idea (reweighting identity) ---
 \begin{frame}{A more general lever}
-  \textbf{No conjugacy required} --- unlike Rao--Blackwell.
+  \textbf{No conjugacy required} --- unlike Rao--Blackwell. Draw the parameters from a \textbf{proposal} $q(\bt)$ instead of the prior $p(\bt)$, then \textbf{reweight} to leave the risk unchanged:
+  \[
+    L(\bg)=\E_{\bt\sim p,\,\by}\big[\ell(\bt,\net(\by))\big]
+          =\E_{\bt\sim q,\,\by}\big[\,{\color{accent}w(\bt)}\,\ell(\bt,\net(\by))\,\big],
+          \qquad {\color{accent}w(\bt)=\tfrac{p(\bt)}{q(\bt)}}.
+  \]
   \begin{itemize}
-    \item Simulate from a \textbf{proposal} that oversamples the informative regions, then \textbf{reweight} back to the original risk (unbiased for any proposal).
-    \item But \alert{no guarantee}: bad weights can \emph{increase} variance and shrink the effective sample size.
+    \item Unbiased for \alert{any} proposal $q$: the weight $w=p/q$ undoes the change of measure, so we still target the original prior.
+    \item Point $q$ at the \textbf{informative regions} --- spend more of the budget where the estimator has the most to learn.
+    \item But \alert{no guarantee}: bad weights inflate variance and collapse the effective sample size.
   \end{itemize}
-  \vspace{0.3em}
-  \begin{center}
-    \begin{tikzpicture}[font=\scriptsize,>=Stealth]
-      \draw[->] (-0.1,0) -- (4.3,0) node[right,font=\tiny]{parameter};
-      \draw[thick,gray!70] (0,0.7) -- (4,0.7);
-      \node[gray,font=\tiny,anchor=west] at (4.02,0.7){prior};
-      \draw[thick,orange] plot[smooth,tension=0.7] coordinates {(0,1.75)(0.6,1.0)(2,0.55)(3.4,1.0)(4,1.75)};
-      \node[orange,font=\tiny,anchor=west] at (4.02,1.75){proposal};
-      \node[font=\tiny,anchor=north] at (2,-0.05){a proposal oversampling the hard edges, then reweighted};
-    \end{tikzpicture}
-  \end{center}
 \end{frame}
 
-% --- S11: importance sampling result (AR1 / GRU) ---
-\begin{frame}{Importance sampling: the result}
+% --- S10.5: the AR(1) test case + the proposal ---
+\begin{frame}[t]{A test case: AR(1)}
+  \vspace{0.4em}
+  AR(1) test: the extreme edges (tiny $\sigma$, $|\rho|\to1$) \emph{look} hardest, so we oversample them.
+  \vspace{0.3em}
   \begin{columns}[c]
-    \begin{column}{0.54\textwidth}
-      \centering\includegraphics[width=\textwidth]{gibbs_vs_nn.png}\\[0.2em]
-      {\scriptsize On an AR(1) model, the GRU already tracks the Gibbs (Bayes) reference across the prior --- \textbf{little error left to recover}.}
+    \begin{column}{0.58\textwidth}
+      \centering\includegraphics[width=\textwidth]{gibbs_vs_nn.png}\\[0.1em]
+      {\scriptsize The GRU tracks Gibbs; the star (tiny $\sigma$) is \textbf{unidentifiable}.}
     \end{column}
-    \begin{column}{0.44\textwidth}
-      \centering\includegraphics[width=0.9\textwidth]{ess_vs_alpha.png}\\[0.2em]
-      {\scriptsize Push the proposal hard and the effective sample size \textbf{collapses} --- only adding noise.}
+    \begin{column}{0.40\textwidth}
+      \centering\includegraphics[width=\textwidth]{proposal_samples.png}\\[0.1em]
+      {\scriptsize Draws pile on the edges.}
     \end{column}
   \end{columns}
-  \vspace{0.2em}
-  {\footnotesize \alert{Why it fails here:} the estimator already sits near the Bayes floor, and the little error that remains lives at the $|\rho|\to 1$ boundary --- which the proposals do not target.}
+\end{frame}
+
+% --- S11: importance sampling result (gradient variance) ---
+\begin{frame}{Importance sampling: the result}
+  \vspace{0.3em}
+  \begin{columns}[c]
+    \begin{column}{0.5\textwidth}
+      \centering\includegraphics[width=0.84\textwidth]{grad_variance.png}\\[0.1em]
+      {\scriptsize Every proposal \textbf{inflates} the training-gradient variance ($V(\alpha)/V(1)\ge 1$) --- the very quantity RB shrinks.}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \centering\includegraphics[width=0.93\textwidth]{region_breakdown.png}\\[0.1em]
+      {\scriptsize And the test error falls in \textbf{no} region --- no proposal beats the uniform baseline ($\alpha=1$).}
+    \end{column}
+  \end{columns}
+  \vspace{0.1em}
+  %{\footnotesize \alert{Why it fails:} the GRU already sits near the Bayes floor --- little reducible error for any proposal to recover. (Those $|\rho|\to1$ edges only \emph{looked} hard: the easiest to estimate $\rho$ from.)}
 \end{frame}
 
 % >>> IS MODULE END <<<
