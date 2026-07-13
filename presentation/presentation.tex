@@ -61,8 +61,31 @@
 % ===== TITLE =====
 \maketitle
 
+% --- S0: overview / roadmap (the gist in one slide) ---
+\begin{frame}{Overview}
+  \textbf{Neural Bayes estimators} learn the map from a dataset straight to its posterior estimate --- giving fast, \emph{amortised} Bayesian inference.
+  \vspace{0.4em}
+  \begin{itemize}
+    \item \textbf{The catch:} training one is \emph{itself} a Monte Carlo problem --- so the gradient that drives training is \alert{noisy}.
+    \item \textbf{This thesis:} treat that as \textbf{variance reduction} --- cut the noise, and train better.
+  \end{itemize}
+  \vspace{0.5em}
+  \begin{columns}[t]
+    \begin{column}{0.47\textwidth}
+      \begin{block}{Idea 1 $\cdot$ Rao--Blackwellisation}
+        Replace noisy targets by their exact conditional mean. \textbf{Provably} lower variance --- needs a \emph{conjugate} block.
+      \end{block}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \begin{block}{Idea 2 $\cdot$ Importance sampling}
+        Draw from a proposal and reweight. \textbf{General} --- but with \emph{no guarantee}.
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 % ===================================================================
-\section{Background: neural Bayes estimators}
+\section{Background: Neural Bayes estimators}
 % ===================================================================
 
 % --- S1: Bayesian setup (box v1) ---
@@ -110,6 +133,27 @@
   \end{tikzpicture}
   \end{center}
   \vspace{0.4em}
+\end{frame}
+
+% --- S1c: the Bayes risk (decision theory) --- what makes an estimate optimal ---
+\begin{frame}{The Bayes risk}
+  Which point estimate $\hat{\bt}(\by)$ should we return? Fix a \textbf{loss} $\ell(\bt,\hat{\bt})$ and minimise the \textbf{Bayes risk}
+  \[ \E_{\bt,\by}\big[\ell\big(\bt,\hat{\bt}(\by)\big)\big]. \]
+  The choice of loss sets \emph{which} posterior summary is optimal:
+  \begin{center}
+  \renewcommand{\arraystretch}{1.1}
+  \begin{tabular}{lc}
+    \toprule
+    loss $\ell(\bt,\hat{\bt})$ & optimal estimate (its minimiser) \\
+    \midrule
+    squared \ $\lVert\bt-\hat{\bt}\rVert^2$ & posterior \textbf{mean} $\;\E[\bt\given\by]$ \\
+    absolute \ $\lvert\bt-\hat{\bt}\rvert$ & posterior \textbf{median} \\
+    quantile \ $(\alpha-\mathbf{1}_{\{\bt<\hat{\bt}\}})(\bt-\hat{\bt})$ & posterior \textbf{quantile} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{-0.1em}
+  {\footnotesize Usually this criterion is used to \emph{choose} which estimator to use}
 \end{frame}
 
 % --- S2: MCMC (box v2) ---
@@ -196,39 +240,20 @@
 \end{frame}
 \fi
 
-% --- S5: loss functions pick the summary (last Background slide) ---
-\begin{frame}{The loss picks which summary you estimate}
-  The network minimises the \textbf{Bayes risk} $\;L(\bg)=\E_{\bt,\by}\big[\ell\big(\bt,\net(\by)\big)\big]$ --- and the loss $\ell$ decides \emph{which} posterior summary it targets:
-  \begin{center}
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{lc}
-    \toprule
-    loss $\ell(\bt,\hat{\bt})$ & best estimate (its minimiser) \\
-    \midrule
-    squared \ $\lVert\bt-\hat{\bt}\rVert^2$ & posterior \textbf{mean} $\;\E[\bt\given\by]$ \\
-    absolute \ $\lvert\bt-\hat{\bt}\rvert$ & posterior \textbf{median} \\
-    quantile \ $(\alpha-\mathbf{1}_{\{\bt<\hat{\bt}\}})(\bt-\hat{\bt})$ & posterior \textbf{quantile} \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-  \vspace{0.1em}
-  Bayes risk is not available in closed form, so we \emph{estimate it by Monte Carlo}:
+% --- The idea: training is Monte Carlo (back to the Bayes risk) ---
+\begin{frame}{The idea: training is Monte Carlo}
+  Back to the Bayes risk. \textbf{Goal:} choose the network weights $\bg$ that minimise
+  \[ L(\bg)=\E_{\bt,\by}\big[\ell\big(\bt,\net(\by)\big)\big]. \]
+  No closed form --- so each step estimates it by \textbf{Monte Carlo} on a minibatch and takes a \textbf{stochastic-gradient} step:
   \[
-    L(\bg)\;\approx\;\tfrac{1}{N}\sum_{i=1}^{N}\ell\big(\bt_i,\net(\by_i)\big),\quad (\bt_i,\by_i)\sim\text{model}.
+    \widehat{L}(\bg)=\frac{1}{B}\sum_{b=1}^{B}\ell\big(\bt^{[b]},\net(\by^{[b]})\big),
+    \qquad \bg \leftarrow \bg - \eta\,\nabla_{\bg}\widehat{L}(\bg).
   \]
-\end{frame}
-
-% --- The idea: training is Monte Carlo (last Background slide) ---
-\begin{frame}{The idea}
-  In training we estimate the risk by \textbf{Monte Carlo}:
-  \[
-    L(\bg)\;\approx\;\tfrac{1}{N}\sum_{i=1}^{N}\ell\big(\bt_i,\net(\by_i)\big),\qquad (\bt_i,\by_i)\sim\text{model}.
-  \]
+  {\footnotesize (each minibatch draws fresh $(\bt^{[b]},\by^{[b]})\sim\text{model}$.)}
   \begin{itemize}
-    \item So the \textbf{gradient} $g(\bg)=\nabla_{\bg} L(\bg)$ that drives training is a \alert{random quantity with variance}.
-    \item That variance is about \emph{how we sample the loss}, not the inference problem --- \alert{so we can apply variance reduction techniques}.
+    \item \alert{Insight:} the minibatch gradient $\nabla_{\bg}\widehat{L}$ is a \textbf{random estimate} --- it has variance, from \emph{how we sample the loss}, not from the inference problem.
+    \item So we can \alert{apply variance-reduction techniques} to speed up and stabilise training.
   \end{itemize}
-  \vspace{0.3em}
 \end{frame}
 
 
@@ -236,26 +261,33 @@
 \section{Idea 1: Rao--Blackwellisation}
 % ===================================================================
 
-% --- S7: the trick (RB intuition + our insight: apply it to training) ---
+% --- S7: the trick (Rao-Blackwellise the minibatch loss estimator) ---
 \begin{frame}{The trick}
-  The network trains on $(\by,\bt)$ pairs where the target $\bt$ is a \textbf{noisy draw}. Classical \textbf{Rao--Blackwell:} replacing a sampled quantity by its \textbf{conditional mean} keeps the same expectation but \alert{can only \emph{reduce} variance}.
+  The training target $\bt$ is a \textbf{noisy draw}. Split $\bt=(\bt_1,\bt_2)$; in the minibatch loss estimator, replace each term by its \textbf{conditional mean} given $(\bt_2^{[b]},\by^{[b]})$ --- averaging out the noise in $\bt_1$:
+  \begin{align*}
+    \widehat{L}_{\MC}(\bg) &=\frac{1}{B}\sum_{b=1}^{B}\ell\big(\bt^{[b]},\net(\by^{[b]})\big), \\[0.2em]
+    \widehat{L}_{\RB}(\bg) &=\frac{1}{B}\sum_{b=1}^{B}\E\big[\,\ell\big(\bt^{[b]},\net(\by^{[b]})\big)\,\big|\,\bt_2^{[b]},\by^{[b]}\,\big].
+  \end{align*}
   \begin{itemize}
-    \item Split $\bt=(\bt_1,\bt_2)$ and condition on $\bt_2$: swap the noisy target for $\E[\bt\given\bt_2,\by]$ --- a \textbf{cleaner label}, at no cost to what we estimate.
-    \item That conditional mean is \textbf{closed-form} exactly when the block $\bt_1$ is \textbf{conditionally conjugate} --- the one thing this needs.
+    \item Same mean --- but the \textbf{Rao--Blackwell theorem} makes $\widehat{L}_{\RB}$ have \alert{never larger variance}, for any model and any architecture.
+    \item Exactly computable when the block $\bt_1$ is \textbf{conditionally conjugate}.
   \end{itemize}
-  \vspace{0.3em}
-  {\footnotesize \textbf{Example} --- Bayesian linear regression: given the noise variance $\sigma^2\,=\bt_2$, the coefficients $\bb\,=\bt_1$ are Gaussian, so $\E[\bb\given\sigma^2,\by]$ is closed-form.}
 \end{frame}
 
-% --- S8: concrete mechanism on Bayesian linear regression ---
-\begin{frame}{Bayesian linear regression: a cleaner target}
-  Model $\by=X\bb+\bm\varepsilon$, $\bm\varepsilon\sim\Normal(0,\sigma^2 I)$; parameters $(\bb,\sigma^2)$. $\E[\bb\given\sigma^2,\by]$ and therefore $\E[\bt\given\sigma^2,\by]$ is available in \textbf{closed form}.
-  \begin{align*}
-    L(\bg) &= \E_{\bt,\by}\big[\lVert\bt-\net(\by)\rVert^2\big] \\
-    &= \E_{\sigma^2,\by}\Big[\,\E\big[\lVert\bt-\net(\by)\rVert^2 \,\big|\, \sigma^2,\by\big]\,\Big] \\
-    &= \E_{\sigma^2,\by}\Big[\,\underbrace{\big\lVert \net(\by)-\E[\bt\given\sigma^2,\by]\big\rVert^2}_{\text{analytic function of $\sigma^2,\by$}} \;+\; \underbrace{\Tr\!\big(\Var(\bt\given\sigma^2,\by)\big)}_{\text{constant in}\bg}\,\Big]
-  \end{align*}
-  Rao--Blackwell tells us that using this clean target makes the loss estimate $\hat L(\bg)$ and its gradient $\hat g=\nabla_{\bg}\hat L$ \textbf{less noisy} --- same mean, never larger variance.
+% --- S8: squared-error loss makes the conditional mean explicit ---
+\begin{frame}{Squared error: a clean target}
+  For \textbf{squared-error} loss the conditional mean is simple --- expand each term of $\widehat{L}_{\RB}$:
+  \[
+    \widehat{L}_{\RB}(\bg)=\frac{1}{B}\sum_{b=1}^{B}\Big[\;
+      \big\lVert \net(\by^{[b]})-{\color{accent}\E[\bt\given\bt_2^{[b]},\by^{[b]}]}\big\rVert^2
+      \;+\; \underbrace{\Tr\!\big(\Var(\bt\given\bt_2^{[b]},\by^{[b]})\big)}_{\text{constant in }\bg}\;\Big].
+  \]
+  \begin{itemize}
+    \item Just squared error to a \textbf{clean target} ${\color{accent}\E[\bt\given\bt_2^{[b]},\by^{[b]}]}$ --- the exact conditional mean, in place of the noisy draw $\bt^{[b]}$.
+    \item The variance term is \textbf{constant in $\bg$}: it drops straight out of the gradient.
+  \end{itemize}
+  \vspace{0.2em}
+  {\footnotesize \textbf{Bayesian linear regression:} take $\bt=(\bb,\sigma^2)$ and condition on $\sigma^2$; then $\bb$ is Gaussian, so the clean target $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}.}
 \end{frame}
 
 % --- S9: RB result on Bayesian linear regression ---
@@ -264,52 +296,22 @@
     \includegraphics[width=\textwidth]{rb_hero.png}\\[0.15em]
     {\scriptsize Bayesian linear regression, $p=10$ coefficients; mean $\pm$ 1 s.d. over repeated training runs.}
   \end{center}
-  \vspace{0.1em}
+  \vspace{-0.4em}
   \begin{itemize}
     \item The Gibbs sampler gives the Bayes-optimal floor $L^*$ (green).
     \item RB reaches a \textbf{lower test error} at the small and moderate batches --- where the training gradient is noisiest.
-    \item The advantage \textbf{shrinks as the batch grows}: by batch 256 the curves meet.
+    \item The advantage \textbf{shrinks as the batch grows}.
   \end{itemize}
 \end{frame}
 
-% --- S10: generalisation + the provable guarantee (the contribution) ---
-\begin{frame}{In general}
-  Nothing used linear regression in particular. Split any parameters $\bt=(\bt_1,\bt_2)$ with $\bt_1$ \textbf{conditionally conjugate}, such that $\E[\ell\given\bt_2,\by]$ is available in closed form.
-  \vspace{0.15em}
-  \begin{itemize}
-    \item The Rao--Blackwellised gradient is the standard one \textbf{conditioned} on $(\bt_2,\by)$, so the law of total variance makes it \alert{never noisier} --- for any model and any architecture.
-    \item For a linear network, the guarantee even reaches the fitted weights.
-  \end{itemize}
-  \vspace{-0.1em}
-  \begin{center}
-  \begin{tikzpicture}[
-      >=Stealth,
-      box/.style={draw, rounded corners, align=center, inner sep=5pt, font=\small},
-      estmc/.style={draw=warmcol, thick, rounded corners, align=center, inner sep=5pt, font=\small, fill=warmcol!10},
-      estrb/.style={draw=floorcol, thick, rounded corners, align=center, inner sep=5pt, font=\small, fill=floorcol!12},
-      lbl/.style={font=\footnotesize, text=accent, inner sep=3pt}
-    ]
-    \node[box] (A) {$L=\E_{\bt,\by}\big[\ell(\bt,\net(\by))\big]$};
-    \node[estmc] (B) [right=26mm of A] {$\hat L_{\MC}$};
-    \node[box] (C) [below=8mm of A] {$L=\E_{\bt_2,\by}\big[\,\E[\ell\given\bt_2,\by]\,\big]$};
-    \node[estrb] (D) [below=8mm of B] {$\hat L_{\RB}$};
-    \draw[->, thick] (A) -- node[above, lbl]{sample $(\bt,\by)$} (B);
-    \draw[->, thick] (A) -- node[right, lbl]{tower rule} (C);
-    \draw[->, thick] (C) -- node[above, lbl]{sample $(\bt_2,\by)$} (D);
-    \node[font=\scriptsize, text=warmcol, below=1.2mm of B] {noisy};
-    \node[font=\scriptsize, text=floorcol, below=1.2mm of D] {less noisy};
-  \end{tikzpicture}
-  \end{center}
-\end{frame}
-
-% >>> IS MODULE START (S10-S11 — remove this block if tight for time) <<<
+% >>> IS MODULE START <<<
 
 % ===================================================================
-\section{Idea 2: importance sampling}
+\section{Idea 2: Importance sampling}
 % ===================================================================
 
 % --- S10: importance sampling — the idea (reweighting identity) ---
-\begin{frame}{A more general lever}
+\begin{frame}{Importance sampling: A more general lever}
   \textbf{No conjugacy required} --- unlike Rao--Blackwell. Draw the parameters from a \textbf{proposal} $q(\bt)$ instead of the prior $p(\bt)$, then \textbf{reweight} to leave the risk unchanged:
   \[
     L(\bg)=\E_{\bt\sim p,\,\by}\big[\ell(\bt,\net(\by))\big]
@@ -365,7 +367,7 @@
 
 % --- S12: conclusion (results + significance + punchline) ---
 \begin{frame}{Conclusion}
-  Training a neural Bayes estimator is itself Monte Carlo --- so its training variance can be reduced.
+  Training a neural Bayes estimator involves Monte Carlo --- so its training variance can be reduced.
   \begin{itemize}
     \item \textbf{Rao--Blackwellisation} (needs a conjugate block): a \emph{provably} lower-variance training gradient, for any model or architecture --- on linear regression it trains to a lower error, most where the batch is small.
     \item \textbf{Importance sampling} (needs nothing special): more general, but unguaranteed and problem-dependent --- here it did not help.
