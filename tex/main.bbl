@@ -1,0 +1,205 @@
+\begin{thebibliography}{29}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Berger(1985)]{berger1985decision}
+James~O Berger.
+\newblock \emph{Statistical Decision Theory and {Bayesian} Analysis}.
+\newblock Springer, 2 edition, 1985.
+
+\bibitem[Brooks et~al.(2011)Brooks, Gelman, Jones, and
+  Meng]{brooks2011handbook}
+Steve Brooks, Andrew Gelman, Galin~L Jones, and Xiao-Li Meng, editors.
+\newblock \emph{Handbook of {Markov Chain Monte Carlo}}.
+\newblock Chapman and Hall/CRC, 2011.
+
+\bibitem[Casella and George(1992)]{casella1992gibbs}
+George Casella and Edward~I George.
+\newblock Explaining the {Gibbs} sampler.
+\newblock \emph{The American Statistician}, 46\penalty0 (3):\penalty0 167--174,
+  1992.
+
+\bibitem[Chib and Greenberg(1995)]{chib1995understanding}
+Siddhartha Chib and Edward Greenberg.
+\newblock Understanding the {Metropolis--Hastings} algorithm.
+\newblock \emph{The American Statistician}, 49\penalty0 (4):\penalty0 327--335,
+  1995.
+
+\bibitem[Cho et~al.(2014)Cho, van Merri{\"e}nboer, Gulcehre, Bahdanau,
+  Bougares, Schwenk, and Bengio]{cho2014gru}
+Kyunghyun Cho, Bart van Merri{\"e}nboer, Caglar Gulcehre, Dzmitry Bahdanau,
+  Fethi Bougares, Holger Schwenk, and Yoshua Bengio.
+\newblock Learning phrase representations using {RNN} encoder--decoder for
+  statistical machine translation.
+\newblock \emph{arXiv preprint arXiv:1406.1078}, 2014.
+
+\bibitem[Cranmer et~al.(2020)Cranmer, Brehmer, and Louppe]{cranmer2020frontier}
+Kyle Cranmer, Johann Brehmer, and Gilles Louppe.
+\newblock The frontier of simulation-based inference.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 117\penalty0
+  (48):\penalty0 30055--30062, 2020.
+
+\bibitem[Gelman et~al.(2013)Gelman, Carlin, Stern, Dunson, Vehtari, and
+  Rubin]{gelman2013bda}
+Andrew Gelman, John~B Carlin, Hal~S Stern, David~B Dunson, Aki Vehtari, and
+  Donald~B Rubin.
+\newblock \emph{{Bayesian} Data Analysis}.
+\newblock CRC Press, 3 edition, 2013.
+
+\bibitem[Geman and Geman(1984)]{geman1984gibbs}
+Stuart Geman and Donald Geman.
+\newblock Stochastic relaxation, {Gibbs} distributions, and the {Bayesian}
+  restoration of images.
+\newblock \emph{IEEE Transactions on Pattern Analysis and Machine
+  Intelligence}, 6:\penalty0 721--741, 1984.
+
+\bibitem[Givens and Hoeting(2013)]{givens2013computational}
+Geof~H Givens and Jennifer~A Hoeting.
+\newblock \emph{Computational Statistics}.
+\newblock Wiley, 2 edition, 2013.
+
+\bibitem[Hastings(1970)]{hastings1970mcmc}
+Wilfred~Keith Hastings.
+\newblock {Monte Carlo} sampling methods using {Markov} chains and their
+  applications.
+\newblock \emph{Biometrika}, 57\penalty0 (1):\penalty0 97--109, 1970.
+
+\bibitem[Kingma and Ba(2015)]{kingma2015adam}
+Diederik~P Kingma and Jimmy Ba.
+\newblock {Adam}: A method for stochastic optimization.
+\newblock In \emph{International Conference on Learning Representations}, 2015.
+
+\bibitem[Lehmann and Casella(1998)]{lehmann1998point}
+Erich~L Lehmann and George Casella.
+\newblock \emph{Theory of Point Estimation}.
+\newblock Springer, 2 edition, 1998.
+
+\bibitem[Liu et~al.(2019)Liu, Regier, Tripuraneni, Jordan, and
+  McAuliffe]{liu2019raoblackwell}
+Runjing Liu, Jeffrey Regier, Nilesh Tripuraneni, Michael Jordan, and Jon
+  McAuliffe.
+\newblock {Rao-Blackwellized} stochastic gradients for discrete distributions.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  4023--4031, 2019.
+
+\bibitem[Lueckmann et~al.(2021)Lueckmann, Boelts, Greenberg, Gon{\c{c}}alves,
+  and Macke]{lueckmann2021benchmarking}
+Jan-Matthis Lueckmann, Jan Boelts, David~S Greenberg, Pedro~J Gon{\c{c}}alves,
+  and Jakob~H Macke.
+\newblock Benchmarking simulation-based inference.
+\newblock In \emph{International Conference on Artificial Intelligence and
+  Statistics (AISTATS)}, volume 130 of \emph{PMLR}, pages 343--351, 2021.
+
+\bibitem[Metropolis et~al.(1953)Metropolis, Rosenbluth, Rosenbluth, Teller, and
+  Teller]{metropolis1953equation}
+Nicholas Metropolis, Arianna~W Rosenbluth, Marshall~N Rosenbluth, Augusta~H
+  Teller, and Edward Teller.
+\newblock Equation of state calculations by fast computing machines.
+\newblock \emph{The Journal of Chemical Physics}, 21\penalty0 (6):\penalty0
+  1087--1092, 1953.
+
+\bibitem[Papamakarios et~al.(2017)Papamakarios, Pavlakou, and
+  Murray]{papamakarios2017maf}
+George Papamakarios, Theo Pavlakou, and Iain Murray.
+\newblock Masked autoregressive flow for density estimation.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2017.
+
+\bibitem[Papamakarios et~al.(2019)Papamakarios, Sterratt, and
+  Murray]{papamakarios2019snl}
+George Papamakarios, David Sterratt, and Iain Murray.
+\newblock Sequential neural likelihood: Fast likelihood-free inference with
+  autoregressive flows.
+\newblock In \emph{International Conference on Artificial Intelligence and
+  Statistics}, 2019.
+
+\bibitem[Papamakarios et~al.(2021)Papamakarios, Nalisnick, Rezende, Mohamed,
+  and Lakshminarayanan]{papamakarios2021flows}
+George Papamakarios, Eric Nalisnick, Danilo~Jimenez Rezende, Shakir Mohamed,
+  and Balaji Lakshminarayanan.
+\newblock Normalizing flows for probabilistic modeling and inference.
+\newblock \emph{Journal of Machine Learning Research}, 22\penalty0
+  (57):\penalty0 1--64, 2021.
+
+\bibitem[Paulus et~al.(2021)Paulus, Maddison, and
+  Krause]{paulus2021raoblackwell}
+Max~B Paulus, Chris~J Maddison, and Andreas Krause.
+\newblock {Rao-Blackwellizing} the straight-through {Gumbel}-softmax gradient
+  estimator.
+\newblock In \emph{International Conference on Learning Representations}, 2021.
+
+\bibitem[Prescott et~al.(2024)Prescott, Warne, and
+  Baker]{prescott2024multifidelity}
+Thomas~P Prescott, David~J Warne, and Ruth~E Baker.
+\newblock Efficient multifidelity likelihood-free {Bayesian} inference with
+  adaptive computational resource allocation.
+\newblock \emph{Journal of Computational Physics}, 496:\penalty0 112577, 2024.
+
+\bibitem[Radev et~al.(2022)Radev, Mertens, Voss, Ardizzone, and
+  K{\"o}the]{radev2020bayesflow}
+Stefan~T Radev, Ulf~K Mertens, Andreas Voss, Lynton Ardizzone, and Ullrich
+  K{\"o}the.
+\newblock {BayesFlow}: Learning complex stochastic models with invertible
+  neural networks.
+\newblock \emph{IEEE Transactions on Neural Networks and Learning Systems},
+  33\penalty0 (4):\penalty0 1452--1466, 2022.
+
+\bibitem[Radev et~al.(2023)Radev, Schmitt, Schumacher, Elsem{\"u}ller, Pratz,
+  Sch{\"a}lte, K{\"o}the, and B{\"u}rkner]{radev2023bayesflow}
+Stefan~T Radev, Marvin Schmitt, Lukas Schumacher, Lasse Elsem{\"u}ller,
+  Valentin Pratz, Yannik Sch{\"a}lte, Ullrich K{\"o}the, and Paul-Christian
+  B{\"u}rkner.
+\newblock {BayesFlow}: Amortized {Bayesian} workflows with neural networks.
+\newblock \emph{Journal of Open Source Software}, 8\penalty0 (89):\penalty0
+  5702, 2023.
+
+\bibitem[Robert and Casella(2004)]{robert2004monte}
+Christian~P Robert and George Casella.
+\newblock \emph{{Monte Carlo} Statistical Methods}.
+\newblock Springer, 2 edition, 2004.
+
+\bibitem[Sainsbury-Dale et~al.(2024)Sainsbury-Dale, Zammit-Mangion, and
+  Huser]{sainsburydale2024nbe}
+Matthew Sainsbury-Dale, Andrew Zammit-Mangion, and Rapha{\"e}l Huser.
+\newblock Likelihood-free parameter estimation with neural {Bayes} estimators.
+\newblock \emph{The American Statistician}, 78\penalty0 (1):\penalty0 1--14,
+  2024.
+
+\bibitem[Sainsbury-Dale et~al.(2025)Sainsbury-Dale, Zammit-Mangion, Richards,
+  and Huser]{sainsburydale2025graph}
+Matthew Sainsbury-Dale, Andrew Zammit-Mangion, Jordan Richards, and Rapha{\"e}l
+  Huser.
+\newblock Neural {Bayes} estimators for irregular spatial data using graph
+  neural networks.
+\newblock \emph{Journal of Computational and Graphical Statistics}, 2025.
+
+\bibitem[Wang et~al.(2013)Wang, Chen, Smola, and Xing]{wang2013variance}
+Chong Wang, Xi~Chen, Alexander~J Smola, and Eric~P Xing.
+\newblock Variance reduction for stochastic gradient optimization.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2013.
+
+\bibitem[Warne et~al.(2022)Warne, Prescott, Baker, and
+  Simpson]{warne2022multilevel}
+David~J Warne, Thomas~P Prescott, Ruth~E Baker, and Matthew~J Simpson.
+\newblock Multifidelity multilevel {Monte Carlo} to accelerate approximate
+  {Bayesian} parameter inference for partially observed stochastic processes.
+\newblock \emph{Journal of Computational Physics}, 469:\penalty0 111543, 2022.
+
+\bibitem[Zaheer et~al.(2017)Zaheer, Kottur, Ravanbakhsh, Poczos, Salakhutdinov,
+  and Smola]{zaheer2017deepsets}
+Manzil Zaheer, Satwik Kottur, Siamak Ravanbakhsh, Barnabas Poczos, Russ~R
+  Salakhutdinov, and Alexander~J Smola.
+\newblock Deep sets.
+\newblock In \emph{Advances in Neural Information Processing Systems}, pages
+  3391--3401, 2017.
+
+\bibitem[Zammit-Mangion et~al.(2025)Zammit-Mangion, Sainsbury-Dale, and
+  Huser]{zammitmangion2025neural}
+Andrew Zammit-Mangion, Matthew Sainsbury-Dale, and Rapha{\"e}l Huser.
+\newblock Neural methods for amortized inference.
+\newblock \emph{Annual Review of Statistics and Its Application}, 12:\penalty0
+  311--335, 2025.
+
+\end{thebibliography}

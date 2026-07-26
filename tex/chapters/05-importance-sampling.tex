@@ -1,0 +1,709 @@
+% ================================================================
+%  CHAPTER 5 -- IMPORTANCE SAMPLING: AN AR(1) CASE STUDY
+%  Rewrite v4 (discovery-narrative order): bridge from RB -> empirical
+%  origin (architecture play, uneven fit) -> the IS idea -> mechanics
+%  -> negative result -> diagnosis (why) -> conditions (when) -> contrast.
+% ================================================================
+\chapter{Importance Sampling}
+\label{ch:importance-sampling}
+
+Chapter~\ref{ch:rao-blackwell} reduced the variance of the training
+gradient by integrating a conjugate block of the parameter vector out
+of the loss. That construction came with a guarantee. The
+Rao-Blackwell variance gap~\eqref{eq:variance-gap} is positive
+semi-definite, so the construction can never make the gradient noisier,
+for any model and any architecture; on Bayesian linear regression it
+gave faster convergence and a lower error in every cell of the grid.
+This chapter asks whether a second Monte Carlo variance-reduction
+technique, \emph{importance sampling}, can help training in the same
+way.
+
+The idea came from an experiment rather than from theory. While testing
+estimator architectures on a first-order autoregressive model, we
+compared the trained network against an exact-posterior reference, and
+its accuracy looked uneven across the parameter space. The network
+seemed to do worst on the near-non-stationary series at the edges of
+the autoregressive coefficient, and on the faint, low-amplitude series
+at small noise scale. These are the regions where the realisations are
+most distinctive and the process is hardest to simulate, so we suspected
+they were also the hardest to estimate. Under a uniform prior, though,
+the network sees them no more often than any other part of the
+parameter space. Importance sampling offered a way to change that: draw
+the training parameters from a proposal that oversamples the difficult
+regions, then reweight the loss so that it stays unbiased for the
+original prior. If the network's error were concentrated in those
+regions, spending more of the simulation budget there should buy
+accuracy for the same number of training steps.
+
+The result is negative. Across a family of proposals that oversample
+the edges of the parameter space ever more aggressively, the test error
+of the trained estimator does not fall; under the most aggressive
+proposal it rises, while the effective sample size collapses by more
+than an order of magnitude. The negative result is worth reporting
+because its cause is specific, and because it contrasts with the
+previous chapter. Section~\ref{sec:why} traces the cause to two facts
+about the experiment: the trained estimator is already close to the
+exact posterior across the whole prior, so little reducible error
+remains for any proposal to recover, and the regions we oversampled are
+not the ones where its error is largest. Section~\ref{sec:when} sets out
+the conditions under which importance sampling does help training, and
+why none of them held here. Rao-Blackwellisation never makes training variance worse, for any model and
+architecture; importance sampling helps only when the proposal matches
+the structure of the problem, and when it does not, the best it can do
+is leave the error unchanged.
+
+
+
+% ----------------------------------------------------------------
+\section{Importance sampling}
+\label{sec:is-basics}
+
+Importance sampling is a Monte Carlo technique for estimating an
+expectation $\E_{\bm{\theta} \sim p}[f(\bm{\theta})]$ by drawing from a
+different distribution $q$ and reweighting:
+%
+\begin{equation}
+  \E_{\bm{\theta} \sim p}[f(\bm{\theta})]
+  = \int f(\bm{\theta})\, p(\bm{\theta}) \dd\bm{\theta}
+  = \int f(\bm{\theta})\,
+      \frac{p(\bm{\theta})}{q(\bm{\theta})}\, q(\bm{\theta}) \dd\bm{\theta}
+  = \E_{\bm{\theta} \sim q}\!\left[
+      f(\bm{\theta})\,\frac{p(\bm{\theta})}{q(\bm{\theta})}\right].
+  \label{eq:is-basic-identity}
+\end{equation}
+%
+The two Monte Carlo estimators,
+%
+\begin{align}
+  \hat{L}_{\mathrm{MC}} &= \frac{1}{N} \sum_{i=1}^{N} f(\bm{\theta}_i), \qquad \bm{\theta}_i \sim p(\bm{\theta}), \\
+  \hat{L}_{\mathrm{IS}} &= \frac{1}{N} \sum_{i=1}^{N} w(\bm{\theta}_i)\, f(\bm{\theta}_i), \qquad \bm{\theta}_i \sim q(\bm{\theta}),
+\end{align}
+%
+where $w(\bm{\theta}) = p(\bm{\theta})/q(\bm{\theta})$ is the
+\emph{importance weight}, are both unbiased for the same expectation.
+The reweighted estimator $\hat{L}_{\mathrm{IS}}$ can have lower variance
+than the ordinary estimator $\hat{L}_{\mathrm{MC}}$ when
+%
+\begin{equation}
+  \Var_{\bm{\theta} \sim q}\!\big[w(\bm{\theta})\,f(\bm{\theta})\big]
+  < \Var_{\bm{\theta} \sim p}\!\big[f(\bm{\theta})\big].
+\end{equation}
+%
+For a non-negative integrand the proposal that minimises the variance of
+$\hat{L}_{\mathrm{IS}}$ is
+%
+\begin{equation}
+  q^{*}(\bm{\theta}) \propto f(\bm{\theta})\,p(\bm{\theta}),
+  \label{eq:is-optimal-scalar}
+\end{equation}
+%
+which follows from a Cauchy--Schwarz bound on the second moment of the
+reweighted integrand (Appendix~\ref{app:is-optimal-proposal}); under
+this proposal the weighted integrand $w(\bm{\theta})f(\bm{\theta})$ is
+constant and the variance is zero. Equation~\eqref{eq:is-optimal-scalar}
+says to put the proposal mass where the integrand is large, which is
+exactly the intuition behind oversampling the hard regions.
+Section~\ref{sec:when} returns to this to ask which problems importance
+sampling can help; for now it serves as motivation.
+
+In practice the normalising constants of $p$ and $q$ may be unknown, and
+the \emph{self-normalised} estimator
+%
+\begin{equation}
+  \hat{r}_{\text{SNIS}}(\bm{\gamma})
+  = \frac{\sum_{i=1}^{N} w(\bm{\theta}_i)\,
+          L(\bm{\theta}_i, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}_i))}
+         {\sum_{i=1}^{N} w(\bm{\theta}_i)}
+  \label{eq:snis}
+\end{equation}
+%
+is used instead; it is biased at finite $N$ but consistent. To monitor
+what a proposal costs we track its \emph{effective sample size}
+%
+\begin{equation}
+  \mathrm{ESS}
+  = \frac{\big(\sum_i w(\bm{\theta}_i)\big)^2}{\sum_i w(\bm{\theta}_i)^2}
+  = \Big(\textstyle\sum_i \tilde{w}_i^2\Big)^{-1},
+  \label{eq:ess}
+\end{equation}
+%
+where $\tilde{w}_i = w(\bm{\theta}_i)/\sum_j w(\bm{\theta}_j)$ are the
+normalised weights. It lies between $1$ and $N$ and counts, loosely, how
+many of the $N$ reweighted draws carry real weight in the sum. Strictly,
+this is the Kish effective sample size of the self-normalised mean: a
+convenient proxy for the noise a proposal injects rather than an exact
+count of the gradient's effective draws, which
+Section~\ref{sec:grad-variance} measures directly. Still, it captures
+the price of tilting the proposal away from the prior: when the
+effective sample size falls well below $N$, a few draws dominate the
+sum, a warning sign that the proposal has been pushed too far from the
+prior and may inject more gradient noise than its reweighting removes.
+
+Training a neural Bayes estimator is itself a Monte Carlo integration:
+the population loss is the Bayes risk
+$r(\bm{\gamma}) = \E_{\bm{\theta}, \mathbf{y}}
+[L(\bm{\theta}, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))]$, and each
+minibatch estimates its gradient by drawing parameters from the prior.
+Drawing $\bm{\theta}$ from a proposal $q$ and reweighting gives the same
+risk,
+%
+\begin{equation}
+  r(\bm{\gamma})
+  = \int p(\bm{\theta})\,
+      \E_{\mathbf{y} \given \bm{\theta}}[L]\dd\bm{\theta}
+  = \int \frac{p(\bm{\theta})}{q(\bm{\theta})}\, q(\bm{\theta})\,
+      \E_{\mathbf{y} \given \bm{\theta}}[L]\dd\bm{\theta}
+  = \E_{\bm{\theta} \sim q}\!\big[w(\bm{\theta})\,
+      \E_{\mathbf{y} \given \bm{\theta}}[L]\big].
+  \label{eq:is-identity}
+\end{equation}
+%
+The reweighted objective on the right of~\eqref{eq:is-identity} has the
+same expectation as the original for every proposal $q$, so the trained
+estimator still targets the posterior under the original prior $p$;
+reweighting only concentrates the simulation budget where $q$ places
+mass. The same identity holds for the gradient that stochastic gradient
+descent actually uses, so a proposal changes which parameter values the
+gradient is averaged over, not what it estimates.
+Section~\ref{sec:when} returns to the question of when this helps.
+
+\section{Application to an AR(1) model}
+% ----------------------------------------------------------------
+\subsection{The AR(1) model and a recurrent estimator}
+\label{sec:ar1-model}
+
+The test model is the first-order autoregressive process of
+Example~3, equation~\eqref{eq:ar1}:
+$x_t = \rho\,x_{t-1} + \varepsilon_t$ with
+$\varepsilon_t \sim \Normal(0, \sigma^2)$, estimand
+$\bm{\theta} = (\rho, \sigma)$, priors $\rho \sim \Uniform(-1, 1)$ and
+$\sigma \sim \Uniform(0, A)$, and the process initialised from its
+stationary distribution $\Normal(0, \sigma^2/(1-\rho^2))$. As
+$|\rho| \to 1$ the process approaches non-stationarity, and at
+$\rho = 1$ it is a random walk.
+
+Figure~\ref{fig:ar1-examples} shows how the realisations change across
+the prior. Persistence grows with the autoregressive coefficient: at
+$\rho = 0$ the series is white noise, while near $|\rho| = 1$ it wanders
+far from the mean, and the noise scale $\sigma$ sets the amplitude. The
+corners of the $(\rho, \sigma)$ box thus produce qualitatively
+different, harder-\emph{looking} series than the bulk of the prior. As
+the introduction noted, these corners look like where the estimator
+should struggle, which makes them the obvious place to spend extra
+training draws; Section~\ref{sec:why} shows that for $\rho$ the
+appearance is deceptive.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/ar1_examples.png}
+    {\includegraphics[width=\textwidth]{ar1_examples}}
+    {\fbox{\parbox[c][5cm][c]{\textwidth}{\centering\itshape
+      Figure pending: example AR(1) realisations
+      (run \texttt{ar1\_examples.py}).}}}
+  \caption{Example AR(1) realisations across the prior ($T = 100$, from
+  the stationary distribution). Persistence grows with $\rho$ (columns):
+  white noise at $\rho = 0$, a near-random-walk at $\rho = 0.99$. The
+  noise scale $\sigma$ (rows) sets the amplitude.}
+  \label{fig:ar1-examples}
+\end{figure}
+
+Because the data~\eqref{eq:ar1} are a time series rather than a set of
+exchangeable observations, the permutation-invariant DeepSets
+architecture of Section~\ref{sec:deepsets} is inappropriate. The
+estimator is instead a gated recurrent unit~\citep{cho2014gru}: a
+recurrent encoder processes the series, its hidden states are mean
+pooled, and a small multilayer perceptron maps the pooled
+representation to $(\hat{\rho}, \hat{\sigma})$, with a $\tanh$ output on
+the $\rho$-head and a softplus output on the $\sigma$-head to enforce
+the parameter constraints. The estimator is trained under squared-error
+loss, so by Proposition~\ref{prop:squared-error} it targets the
+posterior mean. The series is fed to the encoder on its raw scale,
+without standardisation: the amplitude of an AR(1) realisation is set by
+$\sigma$, so rescaling each series to unit variance would erase the
+scale that identifies $\sigma$, whereas the raw series lets
+the network read $\sigma$ off the amplitude and $\rho$ off the
+autocorrelation. Both parameters are then identifiable from the input.
+
+To judge the estimator we need a per-dataset gold standard, and the
+AR(1) model supplies one: it is conditionally conjugate in both
+parameters, so the Gibbs sampler of Section~\ref{sec:cs-ar1} draws from
+the exact posterior, and its post-burn-in average is the posterior-mean
+reference against which the trained estimator is judged. Comparing the
+two is what makes the loss interpretable: it
+separates the error the network could in principle train away from the
+error that any estimator on the same data must incur.
+
+
+% ----------------------------------------------------------------
+\subsection{A family of proposals}
+\label{sec:is-proposals}
+
+With the goal of training our neural network to better fit the edges of the prior, we need a family of proposals that oversample those edges and a single knob that controls how aggressively. For a parameter with bounded support the Beta
+distribution provides exactly this. The $\mathrm{Beta}(\alpha, \alpha)$
+density on $[0,1]$ is symmetric, and the single parameter $\alpha$
+controls where it places mass: $\alpha = 1$ is uniform, $\alpha < 1$ is
+U-shaped and concentrates mass at the boundaries, and $\alpha > 1$ is
+bell-shaped and concentrates it in the centre. The proposals that target
+the difficult-looking boundary take $\alpha < 1$, with $\alpha = 1$ as
+the uniform baseline. We also include two proposals on the opposite tilt,
+at $\alpha = 1.5$ and $\alpha = 2$; what they do to each coordinate is set
+out below.
+
+For the autoregressive coefficient, a draw
+$\tilde{\rho} \sim \mathrm{Beta}(\alpha, \alpha)$ on $(0,1)$ is mapped to
+$(-1,1)$ by $\rho = 2\tilde{\rho} - 1$; by the change-of-variables
+formula the proposal density and importance weight are
+%
+\begin{equation}
+  q(\rho) = \tfrac{1}{2}\,
+    \mathrm{Beta}\!\Big(\tfrac{\rho+1}{2};\, \alpha, \alpha\Big),
+  \qquad
+  w(\rho) = \frac{p(\rho)}{q(\rho)}
+  = \frac{1}{\mathrm{Beta}\!\big(\tfrac{\rho+1}{2};\, \alpha, \alpha\big)}.
+  \label{eq:is-weight}
+\end{equation}
+%
+At $\alpha = 1$ the Beta density is identically one and $w \equiv 1$,
+recovering uniform training. The noise scale is treated differently.
+Small $\sigma$ gives a faint, near-white-noise series that looks hard to
+pin down, so we oversample only that low-noise tail, as a one-sided test
+of whether concentrating draws on a plausibly hard region buys accuracy
+there. An asymmetric proposal
+$\tilde{\sigma} \sim \mathrm{Beta}(\alpha, 1)$, mapped by
+$\sigma = A\tilde{\sigma}$, does this:
+%
+\begin{equation}
+  q(\sigma) = \tfrac{1}{A}\,
+    \mathrm{Beta}\!\Big(\tfrac{\sigma}{A};\, \alpha, 1\Big),
+  \qquad
+  w(\sigma) = \frac{1}{\mathrm{Beta}\!\big(\tfrac{\sigma}{A};\, \alpha, 1\big)},
+  \label{eq:is-weight-sigma}
+\end{equation}
+%
+and the joint weight is the product of the two factors. Run at
+$\alpha > 1$ instead, the two proposals reverse: the $\rho$-proposal
+concentrates on the interior near $\rho = 0$ and the $\sigma$-proposal on
+large $\sigma$. We include two such cases, at $\alpha = 1.5$ and
+$\alpha = 2$, as the opposite tilt, to
+check whether aiming at those regions does any better than aiming at the
+boundary. Smaller $\alpha$
+oversamples the targeted regions more aggressively but makes $w$ more
+variable, which lowers the effective sample size through~\eqref{eq:ess}.
+That tension, between concentrating the draws and keeping enough of them
+informative, is what the sweep below probes.
+Figure~\ref{fig:is-proposals} shows the mechanism: as $\alpha$ falls the
+$\rho$-proposal piles mass at both ends $|\rho| \to 1$ and the
+$\sigma$-proposal piles mass at small $\sigma$, while the compensating
+weights spread over more orders of magnitude.
+Figure~\ref{fig:is-samples} makes the same reshaping concrete in the
+$(\rho, \sigma)$ plane.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/proposals.png}
+    {\includegraphics[width=\textwidth]{proposals}}
+    {\fbox{\parbox[c][5cm][c]{\textwidth}{\centering\itshape
+      Figure pending: proposal densities and importance weights
+      (run \texttt{plot\_proposals.py}).}}}
+  \caption{The Beta proposal family. \textbf{(a)} The $\rho$-proposal
+  $\mathrm{Beta}(\alpha,\alpha)$: $\alpha < 1$ oversamples the boundaries
+  $|\rho| \to 1$, $\alpha > 1$ the interior, $\alpha = 1$ is uniform.
+  \textbf{(b)} The $\sigma$-proposal $\mathrm{Beta}(\alpha,1)$:
+  $\alpha < 1$ oversamples small $\sigma$, $\alpha > 1$ large $\sigma$.
+  \textbf{(c, d)} The corresponding importance weights $w = p/q$.}
+  \label{fig:is-proposals}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/samples_weighted.png}
+    {\includegraphics[width=\textwidth]{samples_weighted}}
+    {\fbox{\parbox[c][5cm][c]{\textwidth}{\centering\itshape
+      Figure pending: $(\rho,\sigma)$ draws coloured by weight
+      (run \texttt{plot\_proposals.py}).}}}
+  \caption{Training draws in the $(\rho,\sigma)$ plane, coloured by
+  importance weight $w$ (log scale). \textbf{(a)} The uniform prior
+  ($\alpha = 1$): even draws, unit weights. \textbf{(b)} An aggressive
+  proposal ($\alpha = 0.2$): draws cluster on the $|\rho| \to 1$ edges and
+  the small-$\sigma$ floor (small weights, dark), leaving the interior and
+  large $\sigma$ sparse (large weights, bright).}
+  \label{fig:is-samples}
+\end{figure}
+
+
+% ----------------------------------------------------------------
+\subsection{Results}
+\label{sec:is-results}
+
+Estimators were trained at six proposal strengths,
+$\alpha \in \{2.0, 1.5, 1.0, 0.5, 0.3, 0.1\}$: the uniform baseline at
+$\alpha = 1$, three increasingly aggressive boundary proposals at
+$\alpha < 1$, and two proposals on the opposite tilt at $\alpha = 1.5$ and
+$\alpha = 2$. The test error was
+broken down over the whole prior and over three regions of interest: the
+near-non-stationary boundary $|\rho| > 0.8$, the low-noise region
+$\sigma < 0.25A$, and the high-noise region $\sigma > 0.75A$.
+Table~\ref{tab:is-sweep} reports the mean squared error in each region
+together with the mean effective sample size at each $\alpha$.
+
+\begin{table}[t]
+  \centering
+  \caption{Test MSE by proposal strength $\alpha$ and region, with the
+  mean effective sample size (batch size $256$). Regions: the
+  near-non-stationary boundary $|\rho| > 0.8$, low noise
+  $\sigma < 0.25A$, and high noise $\sigma > 0.75A$.}
+  \label{tab:is-sweep}
+  \begin{tabular}{c rrrr r}
+    \toprule
+    $\alpha$ & all & $|\rho|>0.8$ & low $\sigma$ & high $\sigma$ & ESS \\
+    \midrule
+    $2.0$ & $0.0181$ & $0.0196$ & $0.0161$ & $0.0245$ & $\phantom{0}93.1$ \\
+    $1.5$ & $0.0152$ & $0.0123$ & $0.0121$ & $0.0198$ & $172.7$ \\
+    $1.0$ & $0.0136$ & $0.0100$ & $0.0087$ & $0.0187$ & $256.0$ \\
+    $0.5$ & $0.0141$ & $0.0102$ & $0.0099$ & $0.0188$ & $155.9$ \\
+    $0.3$ & $0.0139$ & $0.0100$ & $0.0084$ & $0.0181$ & $\phantom{0}78.8$ \\
+    $0.1$ & $0.0163$ & $0.0128$ & $0.0112$ & $0.0217$ & $\phantom{0}13.4$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The result is negative. Across the whole prior the test error is
+essentially flat for the baseline and the two milder boundary proposals
+($0.0136$, $0.0141$, $0.0139$) and rises at both extremes: climbing through
+$\alpha = 1.5$ ($0.0152$) to $0.0181$ at $\alpha = 2$ on one side, and to
+$0.0163$ at $\alpha = 0.1$ on the other. No proposal improves on the
+uniform baseline. The
+regional breakdown (Figure~\ref{fig:is-region}) shows why there is
+nothing to redistribute. The low-$\sigma$ region the boundary proposals
+oversample is already the easiest at baseline ($0.0087$, the smallest of
+the four), and flooding it with draws leaves it there; the high-$\sigma$
+region they starve is the hardest ($0.0187$) and stays so; and the
+$|\rho| > 0.8$ boundary the $\rho$-proposal targets is among the regions
+where the $\rho$-error is smallest. The interior tilts at $\alpha = 1.5$
+and $\alpha = 2$ aim the other way, towards the $\rho$-interior and high
+$\sigma$, and fare no better: their error is higher in every region, the
+high-$\sigma$ region they now oversample included ($0.0245$ at
+$\alpha = 2$). The estimator already handles every
+region about as well as it can, so reweighting finds no slack to recover,
+whichever way it aims. At $\alpha = 0.1$ this is starkest: every region
+degrades together, the flooded low-$\sigma$ tail included (it rises from
+$0.0087$ to $0.0112$), as the collapsed effective sample size leaves the
+gradient too noisy to train well.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/region_breakdown.png}
+    {\includegraphics[width=0.85\textwidth]{region_breakdown}}
+    {\fbox{\parbox[c][6cm][c]{0.85\textwidth}{\centering\itshape
+      Figure pending: per-region MSE bars
+      (re-export \texttt{region\_breakdown} from the AR(1) sweep).}}}
+  \caption{Test MSE by region for each proposal strength $\alpha$. The
+  baseline and the two milder boundary proposals ($\alpha = 1, 0.5, 0.3$)
+  sit lowest and together; the interior tilt $\alpha = 1.5$ is intermediate,
+  and the extremes $\alpha = 0.1$ and $\alpha = 2$ are worse in every
+  region.}
+  \label{fig:is-region}
+\end{figure}
+
+What does fall is the effective sample size: it peaks at $256$ for the
+uniform baseline and drops away as the proposal tilts in either
+direction, to $173$ at $\alpha = 1.5$ and $93$ at $\alpha = 2$ on one side
+and $13$ at $\alpha = 0.1$ on the other, as the
+increasingly variable weights~\eqref{eq:is-weight} let a handful of draws
+dominate the reweighted sum. This is the proposal's one reliable effect,
+and it is a cost, not a benefit. The training curves
+(Figure~\ref{fig:is-curves}) show its consequence: the three milder
+proposals converge together near the floor, while $\alpha = 1.5$ settles a
+little above them and the two extremes, $\alpha = 0.1$ and $\alpha = 2$,
+sit higher still throughout, jitterier and settling at a
+higher loss rather than the same one.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/training_curves.png}
+    {\includegraphics[width=0.8\textwidth]{training_curves}}
+    {\fbox{\parbox[c][6cm][c]{0.8\textwidth}{\centering\itshape
+      Figure pending: validation MSE training curves
+      (re-export \texttt{training\_curves} from the AR(1) sweep).}}}
+  \caption{Seed-averaged validation MSE over training for the six
+  proposals. The three milder settings ($\alpha = 1, 0.5, 0.3$) converge
+  together near the floor; the interior tilt $\alpha = 1.5$ sits a little
+  above them, and the extremes $\alpha = 0.1$ and $\alpha = 2$ stay higher
+  still, jitterier and settling higher.}
+  \label{fig:is-curves}
+\end{figure}
+\subsection{The gradient variance, measured directly}
+\label{sec:grad-variance}
+
+The previous section read the negative result off two indirect quantities: the
+test error of the trained estimator, which no proposal lowered, and the
+effective sample size, which every proposal lowered. Neither is the quantity
+importance sampling is meant to reduce. What training actually consumes is the
+gradient: by~\eqref{eq:is-identity} each minibatch estimates
+$\nabla_{\bm{\gamma}} r$ by reweighting draws from the proposal, and the
+speed of stochastic gradient descent is governed by the variance of that
+estimate, not by the variance of the loss nor by the effective sample size on its
+own. This section measures the gradient variance directly, and so asks of each
+proposal the question the chapter has thus far answered only by proxy: did
+reweighting make the gradient less noisy, or more?
+
+The measurement holds the estimator fixed. At a frozen set of weights
+$\bm{\gamma}$ and a proposal $q_{\alpha}$, a single minibatch of the common size
+$B = 256$ produces the self-normalised gradient
+%
+\begin{equation}
+  \mathbf{g}
+  = \nabla_{\bm{\gamma}} \sum_{i=1}^{B} \tilde{w}_i\,
+      L(\bm{\theta}_i, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}_i)),
+  \qquad \bm{\theta}_i \sim q_{\alpha},
+  \label{eq:grad-est}
+\end{equation}
+%
+exactly the estimator the training loop applies in~\eqref{eq:snis}. Drawing $M$
+independent minibatches, each of the same size $B$ so that every $\alpha$ spends
+the identical simulation budget per step, the total gradient variance is
+estimated by
+%
+\begin{equation}
+  V(\alpha)
+  = \Tr\bigl(\Cov(\mathbf{g})\bigr)
+  = \frac{1}{M} \sum_{m=1}^{M}
+      \big\lVert \mathbf{g}^{(m)} - \bar{\mathbf{g}} \big\rVert_2^2,
+  \qquad
+  \bar{\mathbf{g}} = \frac{1}{M} \sum_{m=1}^{M} \mathbf{g}^{(m)},
+  \label{eq:grad-var}
+\end{equation}
+%
+the spread of the minibatch gradient about its own mean, summed over every weight
+of the network. The quantity reported is the ratio $V(\alpha)/V(1)$ to the
+uniform baseline: a value below one is a genuine variance reduction, a value
+above one is added noise, and the baseline sits at one by construction. Because
+the variance depends on the weights at which it is taken, the comparison is made
+at the same network for every proposal: a fresh random initialisation, fixed and
+identical across the sweep. Each ratio is averaged over three measurement seeds.
+
+The result is unambiguous (Figure~\ref{fig:grad-variance}). The gradient variance
+is smallest at the uniform baseline and rises under every proposal; no setting of
+$\alpha$ reduces it, and the inflation grows monotonically as the proposal tilts
+further from uniform in either direction. The milder proposals raise it only
+gently --- by a factor of about $1.3$ at $\alpha = 0.5$, $2.2$ at $\alpha = 0.3$,
+and $2.3$ at the opposite tilt $\alpha = 1.5$ --- while the extremes raise it
+sharply, by roughly $14\times$ at $\alpha = 0.1$ and $8.6\times$ at $\alpha = 2$.
+This is the direct counterpart of the test-error and effective-sample-size
+findings of Section~\ref{sec:is-results}: the one reliable effect of reweighting
+here is to make the gradient noisier. No proposal in the Beta family reduced the
+variance that training consumes; Section~\ref{sec:why} explains why none
+could.
+%
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/grad_variance.png}
+    {\includegraphics[width=0.8\textwidth]{grad_variance}}
+    {\fbox{\parbox[c][6cm][c]{0.8\textwidth}{\centering\itshape
+      Figure pending: gradient-variance ratio $V(\alpha)/V(1)$ vs $\alpha$
+      (run \texttt{grad\_variance.py}).}}}
+  \caption{Per-minibatch gradient variance by proposal strength, as the ratio
+  $V(\alpha)/V(1)$ to the uniform baseline, measured at a fresh random
+  initialisation and averaged over three seeds (error bars show the seed spread).
+  The dashed line marks the uniform baseline at one; every proposal lies above
+  it, so none reduces the variance, and the two extremes ($\alpha = 0.1$ and
+  $\alpha = 2$) inflate it by roughly an order of magnitude.}
+  \label{fig:grad-variance}
+\end{figure}
+
+
+% ----------------------------------------------------------------
+\subsection{Why reweighting cannot help here}
+\label{sec:why}
+
+Reweighting does not change what the training
+objective is, only how noisily each minibatch estimates
+it~\eqref{eq:is-identity}, so it can speed training only by making the
+gradient less noisy. For that to buy anything, two things must hold: the
+estimator must have error left to remove, and the proposal must put its
+draws where that error is. On the AR(1) problem neither holds, and both
+facts come from comparing the trained network with the exact posterior.
+
+The estimator is already about as accurate as any estimator could be.
+Table~\ref{tab:gru-vs-gibbs} compares the GRU with the Gibbs posterior
+mean, the Bayes-optimal estimator for this model, on the same test sets.
+The GRU's error exceeds the Gibbs error by $22\%$ on the autoregressive
+coefficient and $13\%$ on the noise scale.
+
+\begin{table}[t]
+  \centering
+  \caption{Test MSE of the GRU estimator and the Gibbs posterior-mean
+  (Bayes) reference, by parameter, on a held-out test set.}
+  \label{tab:gru-vs-gibbs}
+  \begin{tabular}{l rr}
+    \toprule
+             & MSE in $\rho$ & MSE in $\sigma$ \\
+    \midrule
+    Gibbs posterior mean (Bayes) & $0.0073$ & $0.0056$ \\
+    GRU estimator                & $0.0089$ & $0.0063$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The error on any one dataset has two parts. One is the posterior
+uncertainty that no estimator can remove: even the Bayes-optimal
+posterior mean misses, because the data do not pin the parameters down
+exactly. The other is the excess the network carries on top, the gap
+between it and that optimum. Reweighting cannot touch the first part, and
+it recovers the second only where training is held back by gradient
+noise, the one thing a cleaner gradient improves. That excess is small in
+absolute terms (Table~\ref{tab:gru-vs-gibbs}), and
+Figure~\ref{fig:sigma-failure} shows what it is: on the hardest series the
+GRU and the Gibbs sampler miss together, so the error there is posterior
+uncertainty, not a deficit a better-aimed gradient could close. Little of
+the error anywhere is the kind a proposal could recover.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/gibbs_vs_nn.png}
+    {\includegraphics[width=\textwidth]{gibbs_vs_nn}}
+    {\fbox{\parbox[c][5.5cm][c]{\textwidth}{\centering\itshape
+      Figure pending: GRU versus Gibbs estimates by parameter
+      (run \texttt{gibbs\_vs\_nn.py}).}}}
+  \caption{Estimates from the baseline GRU (blue) and the Gibbs posterior
+  mean (grey) against the truth, for $\rho$ (left) and $\sigma$ (centre);
+  the worst-MSE cases are red. Right: one of them as a realisation, an
+  extreme series with $\rho \approx -0.99$ and $\sigma$ at the top of its
+  range. The GRU recovers $\rho$ exactly, though the series looks the
+  hardest of all; both it and Gibbs underestimate the extreme $\sigma$, so
+  that residual is shared with the Bayes-optimal sampler, not something the
+  network could train away.}
+  \label{fig:sigma-failure}
+\end{figure}
+
+The little error that remains sits in the opposite place from where the
+proposals aim. Figure~\ref{fig:binned-mse}
+bins the test error by each parameter. The error in $\rho$ is largest in
+the interior, near $\rho = 0$, and smallest at the boundaries
+$|\rho| \to 1$, the very edge the $\rho$-proposal floods; it is also
+raised where $\sigma$ is small. The error in $\sigma$ runs the other way,
+growing with $\sigma$, so the high-noise end carries most of it while the
+low-$\sigma$ tail the $\sigma$-proposal floods is the cleanest part.
+
+There is a clean reason the boundary is the easy end for $\rho$.
+Estimating $\rho$ is a regression of each $x_t$ on its lag $x_{t-1}$, so
+the posterior variance of the slope is the noise variance over the spread
+of the predictor, $\Var(\rho \mid \sigma^2, \mathbf{x}) = \sigma^2/S$ with
+$S = \sum_t x_{t-1}^2$ (Section~\ref{sec:cs-ar1}). The series starts from
+its stationary distribution, of variance $\sigma^2/(1-\rho^2)$, so
+$S \approx T\sigma^2/(1-\rho^2)$ and the posterior variance is
+$\approx (1-\rho^2)/T$. As $|\rho| \to 1$ the series makes larger, more
+persistent excursions, and this variance vanishes: the data pin $\rho$
+down most tightly exactly where the series looks most dramatic. The
+motivating intuition mistook one kind of difficulty for another: a
+near-non-stationary series has large
+swings that carry the most information about $\rho$, so it is the
+\emph{easiest} to estimate $\rho$ from. The hard-to-simulate end and the
+hard-to-estimate end are opposite.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/binned_mse.png}
+    {\includegraphics[width=\textwidth]{binned_mse}}
+    {\fbox{\parbox[c][5.5cm][c]{\textwidth}{\centering\itshape
+      Figure pending: test MSE binned by parameter
+      (run \texttt{extra\_figures.py}).}}}
+  \caption{Test error binned by $\rho$ (top row) and by $\sigma$ (bottom
+  row), for the baseline (blue), the boundary proposal $\alpha = 0.3$
+  (red), and the opposite tilt $\alpha = 2$ (green). The error lives in
+  the $\rho$-interior and at large $\sigma$, not at the boundary or
+  low-$\sigma$ tail the proposals target; neither overlay improves on the
+  baseline.}
+  \label{fig:binned-mse}
+\end{figure}
+
+The $\alpha = 2$
+proposal puts its draws in the $\rho$-interior and at high $\sigma$, where
+the error genuinely is largest, and it is no better than the rest
+(Table~\ref{tab:is-sweep}), because the error there is the irreducible
+kind the Gibbs sampler shares. So no setting of the Beta family helps:
+where the error is large it cannot be removed, and where it can be removed
+it is already small.
+
+Against these absent gains stands a cost that is always paid. The more a
+proposal concentrates its draws, the more variable its
+weights~\eqref{eq:is-weight}, the lower the effective sample
+size~\eqref{eq:ess}, and the noisier the gradient left by the
+self-normalised objective~\eqref{eq:snis}. With no gain to offset it, this
+cost is the whole effect: at $\alpha = 0.1$ it shows up as the
+across-the-board degradation of Section~\ref{sec:is-results}. Reweighting
+here can only add noise, and the harder it is pushed, the more it adds.
+
+
+% ----------------------------------------------------------------
+\section{When importance sampling can help}
+\label{sec:when}
+
+
+The negative result is therefore a verdict on a mismatch, not on importance sampling in general. Three conditions separate the problems in which importance sampling can help from those in which it cannot.
+
+The first is that there must be reducible error left to recover. Section~\ref{sec:why} showed that little such error remains in the AR(1) experiment: the trained GRU is already close to the Gibbs posterior-mean reference. The remaining test error is therefore dominated by posterior uncertainty rather than by a failure of optimisation. Reweighting the training distribution cannot remove this irreducible part of the Bayes risk.
+
+The second condition is that the proposal must target where the useful gradient signal is concentrated, not merely where the raw loss is large. For squared-error loss,
+\[
+L = \|\hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})-\bm{\theta}\|_2^2,
+\qquad
+\nabla_{\bm{\gamma}} L = 2\left(\nabla_{\bm{\gamma}}\hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})\right)^{\!\top}\left(\hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})-\bm{\theta}\right).
+\]
+
+Thus, ignoring variation in the estimator sensitivity $(\|\nabla_{\bm{\gamma}}\hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})\|)$, the gradient magnitude scales like $\sqrt{L}$, not like $L$ itself. A proposal designed to reduce gradient variance should therefore be guided by the size of the gradient contribution, roughly $q \propto p\sqrt{L}$, rather than by the loss alone. More importantly, the relevant loss is the reducible excess over the Bayes estimator. Large loss caused by posterior uncertainty produces noisy residuals, but not a systematic gradient direction that the network can train away.
+
+The third condition is that the variance affected by the proposal must be the dominant source of training noise. Importance sampling changes how often different parameter values $\bm{\theta}$ are drawn, but it does not remove the randomness from simulating a fresh dataset $(\mathbf{y}\mid\bm{\theta})$. If that conditional simulation noise dominates the minibatch gradient, then even a well-aimed proposal can only produce a limited gain.
+
+The proposals used here were fixed in advance by the single parameter
+$\alpha$, which cannot know where the recoverable gradient signal lies; on
+this problem it aimed badly. One direction for future work is to adapt the
+proposal during training, estimating where the gradient is largest as
+training proceeds and reshaping $q \propto p\sqrt{L}$ towards it, so that
+the simulation budget follows the signal rather than a fixed guess.
+Whether such a scheme can realise even the bounded gains these conditions
+allow, without its own overhead and instability, is an open question.
+A second is to test the method on a problem built to meet the conditions rather than to fail them, where the loss is sharply uneven, the estimator's sensitivity varies in the same direction, and the
+residual error is genuinely reducible. That would be the fair positive
+counterpart to the AR(1) case study, and the place to further investigate whether
+importance sampling can meaningfully help neural Bayes training.
+
+
+% ----------------------------------------------------------------
+\section{Discussion}
+\label{sec:is-discussion}
+
+The experiment returns a negative result, and the negative result is the
+point. On the AR(1) model, importance sampling with Beta proposals leaves
+the trained estimator's test error unchanged for the milder proposals and
+raises it at both extremes, all while collapsing the effective sample size
+by more than an order of magnitude. Section~\ref{sec:why} explains why:
+the estimator is already close to the Bayes reference everywhere, so
+little reducible error remains for any proposal to recover, and the
+regions the boundary proposals target are the ones the estimator already
+handles best. The motivating intuition confused the conspicuous regions,
+the ones that are dramatic to look at and awkward to simulate, with the
+difficult ones; for the autoregressive coefficient the two are opposite.
+
+Section~\ref{sec:when} turns that failure into a specification: importance
+sampling helps training only when there is reducible error to recover,
+when the proposal is aimed where the gradient signal actually
+concentrates, and when the simulation noise is not what limits training. A
+scale-estimation problem can be built to meet these conditions, where the
+gain is real if modest; the AR(1) study met none of them where its
+proposals aimed.
+
+This is the genuine contrast with Chapter~\ref{ch:rao-blackwell}. The
+Rao-Blackwell variance gap~\eqref{eq:variance-gap} is positive
+semi-definite for every model and every architecture: the technique
+cannot make training variance worse, and on Bayesian linear regression it made
+training reliably and substantially better. Importance sampling carries
+no such guarantee. It helps only when the proposal is well matched and
+gradient noise is the binding constraint; when the difficulty lies
+elsewhere, as here, the best it can do is leave the error untouched, and
+pushed harder it makes the error worse, while its cost in effective sample
+size is paid either way. Both are instances of Monte Carlo variance
+reduction applied to estimator training, but they differ in reliability:
+one unconditional, the other contingent on a match between the proposal
+and the structure of the problem. That difference is the main lesson of
+this chapter.

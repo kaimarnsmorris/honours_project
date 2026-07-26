@@ -1,0 +1,15 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces Normal model: accuracy (mean squared error over the $256$ test datasets) and per-dataset cost of the Metropolis--Hastings reference and the neural Bayes estimator. The two agree closely in accuracy, but the amortised network is faster per dataset by some three orders of magnitude (single-threaded CPU timing; $5{,}000$-step chains for Metropolis--Hastings).}}{24}{table.caption.17}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Test MSE by proposal strength $\alpha $ and region, with the mean effective sample size (batch size $256$). Regions: the near-non-stationary boundary $|\rho | > 0.8$, low noise $\sigma < 0.25A$, and high noise $\sigma > 0.75A$.}}{44}{table.caption.27}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Test MSE of the GRU estimator and the Gibbs posterior-mean (Bayes) reference, by parameter, on a held-out test set.}}{47}{table.caption.31}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {B.1}{\ignorespaces Main grid: final test loss of the Monte Carlo (MC) and Rao-Blackwellised (RB) estimators, the Bayes floor $L^{*}$, and the raw and excess-over-floor ratios, for each $(p, B)$ cell at $n = 50$.}}{58}{table.caption.34}%
+\contentsline {table}{\numberline {B.2}{\ignorespaces Batch-size sweep at $p = 20$: final loss and excess over the floor for each estimator.}}{58}{table.caption.35}%
+\contentsline {table}{\numberline {B.3}{\ignorespaces Bayes-optimal floors by dimension $p$ (at $n = 50$), with the squared-error and variance-based estimators.}}{59}{table.caption.36}%
+\contentsline {table}{\numberline {B.4}{\ignorespaces Second design matrix $X^{(2)}$: final test loss of the Monte Carlo (MC) and Rao-Blackwellised (RB) estimators, the Bayes floor $L^{*}$, and the raw and excess-over-floor ratios, for each $(p, B)$ cell at $n = 50$.}}{61}{table.caption.38}%

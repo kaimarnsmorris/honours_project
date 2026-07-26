@@ -64,12 +64,12 @@
 % --- S0: overview / roadmap (the gist in one slide) ---
 \begin{frame}{Overview}
   \textbf{Neural Bayes estimators} learn the map from a dataset straight to its posterior estimate --- giving fast, \emph{amortised} Bayesian inference.
-  \vspace{0.4em}
+  \vspace{0.15em}
   \begin{itemize}
-    \item \textbf{The catch:} training one is \emph{itself} a Monte Carlo problem --- so the gradient that drives training is \alert{noisy}.
-    \item \textbf{This thesis:} treat that as \textbf{variance reduction} --- cut the noise, and train better.
+    \item \textbf{The catch:} training one is \emph{itself} a Monte Carlo problem --- it needs \alert{many simulated samples}, and each gradient step is noisy.
+    \item \textbf{This thesis:} treat that as \textbf{variance reduction} --- cut the noise and train faster, on \alert{fewer samples}.
   \end{itemize}
-  \vspace{0.5em}
+  \vspace{0.25em}
   \begin{columns}[t]
     \begin{column}{0.47\textwidth}
       \begin{block}{Idea 1 $\cdot$ Rao--Blackwellisation}
@@ -91,6 +91,7 @@
 % --- S1: Bayesian setup (box v1) ---
 % --- S1a: Bayesian inference refresher ---
 \begin{frame}{Bayesian inference}
+  Everything we do sits within a \textbf{Bayesian inference} framework.
   \begin{itemize}
     \item Fix a model: parameters $\bt$ with prior $p(\bt)$, and data $\by$ with likelihood $p(\by\given\bt)$.
     \item Seeing $\by$, Bayes' rule updates the prior into the \textbf{posterior distribution}:
@@ -116,7 +117,7 @@
 \begin{frame}{Point estimation}
   \begin{itemize}
     \item Often we do not want the whole posterior --- just a single \textbf{point estimate} $\hat{\bt}$ of $\bt$.
-    \item The usual choice is the \textbf{posterior mean} $\hat{\bt}=\E[\bt\given\by]$.
+    \item The usual choice is the \textbf{posterior mean} $\hat{\bt}=\E[\bt\given\by]$ --- in principle a \textbf{deterministic mapping} from the data $\by$ to $\hat{\bt}$.
     \item But it is \alert{rarely available in closed form} --- so we need a \textbf{procedure} that turns $\by$ into $\hat{\bt}$:
   \end{itemize}
   \vspace{0.5em}
@@ -153,7 +154,7 @@
   \end{tabular}
   \end{center}
   \vspace{-0.1em}
-  {\footnotesize Usually this criterion is used to \emph{choose} which estimator to use}
+  {\footnotesize Usually this criterion is used to \emph{choose} which estimator to use.}
 \end{frame}
 
 % --- S2: MCMC (box v2) ---
@@ -241,18 +242,18 @@
 \fi
 
 % --- The idea: training is Monte Carlo (back to the Bayes risk) ---
-\begin{frame}{The idea: training is Monte Carlo}
+\begin{frame}{Training a neural Bayes estimator}
   \textbf{Goal:} choose the network weights $\bg$ that minimise
   \[ L(\bg)=\E_{\bt,\by}\big[\ell\big(\bt,\net(\by)\big)\big]. \]
   No closed form --- so each step estimates it by \textbf{Monte Carlo} on a minibatch and takes a \textbf{stochastic-gradient} step:
   \begin{align*}
     \widehat{L}(\bg) &= \frac{1}{B}\sum_{b=1}^{B}\ell\big(\bt^{[b]},\net(\by^{[b]})\big),
       \qquad (\bt^{[b]},\by^{[b]})\sim\text{model}, \\[0.3em]
-    \bg &\leftarrow \bg - \eta\,\nabla_{\bg}\widehat{L}(\bg).
+    \bg^{\mathrm{new}} &= \bg - \eta\,\nabla_{\bg}\widehat{L}(\bg).
   \end{align*}
 
   \vspace{0.6em}
-  {\footnotesize \alert{Insight:} the minibatch gradient $\nabla_{\bg}\widehat{L}$ is a \textbf{random estimate} --- it has variance, so we can \alert{apply variance-reduction techniques} to speed up and stabilise training.}
+  {\footnotesize \alert{Insight:} the minibatch gradient $\nabla_{\bg}\widehat{L}$ is a \textbf{random estimate} --- it has variance, so we can \alert{apply variance-reduction techniques} to speed up and stabilise training, and save simulation cost.}
 \end{frame}
 
 
@@ -286,7 +287,7 @@
     \item The variance term is \textbf{constant in $\bg$}: it drops straight out of the gradient.
   \end{itemize}
   \vspace{0.2em}
-  {\footnotesize \textbf{Bayesian linear regression:} take $\bt=(\bb,\sigma^2)$ and condition on $\sigma^2$; then $\bb$ is Gaussian, so the clean target $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}.}
+  {\footnotesize \textbf{Bayesian linear regression:} $\bt=(\bb,\sigma^2)$ with Gaussian prior $\bb\sim\Normal(0,\sigma_0^2 I)$; condition on $\sigma^2$ and $\bb$ is Gaussian, so the clean target $\E[\bb\given\sigma^2,\by]$ is \textbf{closed-form}.}
 \end{frame}
 
 % --- S9: RB result on Bayesian linear regression ---
@@ -311,7 +312,7 @@
 
 % --- S10: importance sampling — the idea (empirical IS estimator) ---
 \begin{frame}{Importance sampling: A more general lever}
-  \textbf{Another commonly used variance-reduction technique} --- and, unlike Rao--Blackwell, it needs \textbf{no conjugacy}.
+  Another commonly used variance-reduction technique is \textbf{importance sampling} --- and, unlike Rao--Blackwell, it needs \textbf{no conjugacy}.
   \[
     \widehat{L}_{\mathrm{IS}}(\bg)=\frac{1}{B}\sum_{b=1}^{B} {\color{accent}w(\bt^{[b]})}\,\ell\big(\bt^{[b]},\net(\by^{[b]})\big),
     \qquad \bt^{[b]}\sim q,\quad {\color{accent}w(\bt)=\tfrac{p(\bt)}{q(\bt)}}.
@@ -327,7 +328,7 @@
 % --- S10.5: the AR(1) test case + the proposal ---
 \begin{frame}[t]{A test case: AR(1)}
   \vspace{0.1em}
-  AR(1) model $x_t=\rho\,x_{t-1}+\varepsilon_t$, $\varepsilon_t\sim\Normal(0,\sigma^2)$, with priors $\rho\sim\mathcal{U}(-1,1)$ and $\sigma\sim\mathcal{U}(0,A)$.
+  \textbf{Oversampling edges in the AR(1) model:} $x_t=\rho\,x_{t-1}+\varepsilon_t$, $\varepsilon_t\sim\Normal(0,\sigma^2)$, priors $\rho\sim\mathcal{U}(-1,1)$, $\sigma\sim\mathcal{U}(0,A)$.
   \vspace{0.1em}
   \begin{columns}[c]
     \begin{column}{0.58\textwidth}
@@ -368,9 +369,9 @@
 
 % --- S12: conclusion (results + significance + punchline) ---
 \begin{frame}{Conclusion}
-  \textbf{Goal:} improve training for \textbf{neural Bayes estimators} by more efficient \textbf{sampling of the Bayes risk}.
+  \textbf{Goal:} improve training for neural Bayes estimators by more efficient sampling of the Bayes risk.
   \begin{itemize}
-    \item \textbf{Rao--Blackwellisation} (needs a conjugate block): a \emph{provably} lower-variance training gradient, for any model or architecture --- on linear regression it trains to a lower error, most where the batch is small.
+    \item \textbf{Rao--Blackwellisation} (needs a conjugate block): a \emph{provably} lower-variance training gradient, for any model or architecture --- and can be applied wherever Gibbs sampling is used.
     \item \textbf{Importance sampling} (needs nothing special): more general, but unguaranteed and problem-dependent --- here it did not help.
   \end{itemize}
   \vspace{0.5em}

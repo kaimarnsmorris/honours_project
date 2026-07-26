@@ -1,0 +1,129 @@
+% ================================================================
+%  CHAPTER 6 -- DISCUSSION AND CONCLUSION
+%  Status: DRAFT v1 (2026-05-18).
+% ================================================================
+\chapter{Discussion and Conclusion}
+\label{ch:conclusion}
+
+% ----------------------------------------------------------------
+
+
+This thesis began from a single observation: training a neural Bayes
+estimator involves Monte Carlo integration of the Bayes risk, and the
+gradient that drives training is therefore a Monte Carlo estimator
+with a variance. That variance is a property of how the loss is
+sampled, not of the inference problem, and it can be reduced.
+
+The primary reduction attempted here is the Rao-Blackwellised loss. When a
+block of the parameter vector has a tractable conditional posterior,
+that block is integrated out of the loss analytically rather than
+sampled. For squared-error loss this amounts to substituting the
+conditional posterior mean for the sampled target, with the residual
+conditional variance entering only as a constant that does not affect
+the gradient. The resulting training gradient is the
+Rao-Blackwellisation of the standard one, and the law of total
+variance gives a positive semi-definite gradient-variance gap: the
+technique can never increase the variance of the training gradient.
+For a linear network the guarantee strengthens to the fitted weights
+themselves.
+
+The empirical study on Bayesian linear regression bore this out. The
+Rao-Blackwellised estimator attained a lower loss than the standard
+estimator in every cell of the experimental grid, closed about half
+the gap between the standard estimator and the Bayes-optimal floor at
+the baseline, and matched the standard estimator's accuracy at a
+quarter of the batch size.
+
+
+Chapter~\ref{ch:importance-sampling} placed Rao-Blackwellisation
+alongside importance sampling, a second variance-reduction technique
+acting on the training of the estimator. The comparison is the
+clearest summary of what makes Rao-Blackwellisation attractive.
+Importance sampling can in principle sharpen estimation by
+oversampling the regions that contribute most to the loss, but only
+when the bottleneck on training is gradient noise and the proposal is
+matched to it. On the autoregressive model neither condition held: the
+trained estimator already sat close to the Bayes-optimal floor across
+the prior, and the proposal oversampled the very regions it handled
+best, so reweighting found no error worth recovering and, pushed hard,
+only added gradient noise.
+Rao-Blackwellisation carries an unconditional guarantee, the
+variance gap being positive semi-definite for every model and
+architecture, at the cost of requiring a tractable conditional
+posterior. Where that conditional structure is present, as it is in
+any conditionally conjugate hierarchical model, Rao-Blackwellisation
+is the safer and stronger of the two.
+
+One distinction underlies this comparison and is worth stating
+directly. Reducing the variance of the loss --- or, more precisely, of
+the gradient that drives training --- is not really the primary goal;
+the goal is reducing the variance of the estimate that training
+produces, the fitted weights $\hat{\bm{\gamma}}$ and the estimator they
+define. A cleaner gradient is valuable only insofar as it yields a less
+variable estimator. At this level the two techniques separate most
+sharply. For a linear network, Section~\ref{sec:linear-network} showed
+that Rao-Blackwellisation reduces not only the variance of the gradient
+but the variance of the fitted weights themselves, with the last-layer
+argument suggesting the same holds approximately for nonlinear
+networks. Importance sampling admits no such statement: it bears, and
+only contingently, on the variance with which a minibatch estimates the
+gradient, and nothing in it carries through to the variance of the
+estimator that training returns. That a guarantee can be carried to the
+fitted weights for one technique and not the other is the deepest form
+of the contrast between them.
+
+
+Several limitations bound the results. The Rao-Blackwellised loss
+requires a tractable conditional posterior for the integrated block;
+where no parameter block is conditionally conjugate the construction
+does not apply, and only the sampled block benefits when one block is.
+The experimental evidence is confined to two models (linear
+regression with a multilayer perceptron, and an autoregressive process
+with a recurrent network) and does not establish how the method
+behaves for richer simulators or larger architectures. The estimators
+studied are point estimators and provide no quantification of
+posterior uncertainty.
+
+% ----------------------------------------------------------------
+\section{Future work}
+\label{sec:future-work}
+
+Several directions follow naturally. The linear-network result of
+Section~\ref{sec:linear-network} suggests, but does not prove, a
+corresponding statement for fully nonlinear networks; making the
+last-layer argument rigorous, or bounding its error, would close that
+gap. The squared-error construction of Section~\ref{sec:rb-mse} could
+be extended to other losses (the quantile loss of
+Section~\ref{sec:loss-summaries}, for instance) to Rao-Blackwellise
+estimators of posterior quantiles rather than means. Where a parameter
+block is only approximately conjugate, a partial or approximate
+Rao-Blackwellisation may still reduce variance, and quantifying the
+resulting bias--variance trade-off is an open question. The
+variance-reduction toolbox of Monte Carlo contains further techniques
+not explored here (control variates, antithetic sampling, and
+stratified proposals among them), and a systematic comparison of
+these against Rao-Blackwellisation for estimator training, including
+how they might be combined, is a natural direction. A related
+direction is the reparameterisation of the estimator's outputs to
+decouple weakly identified parameters, an alternative to variance
+reduction for the boundary difficulties of
+Chapter~\ref{ch:importance-sampling}. Most importantly, the method
+should be tested on the larger, less tractable simulators that are the
+natural setting for simulation-based inference.
+
+% ----------------------------------------------------------------
+\section{Conclusion}
+\label{sec:final}
+
+Neural Bayes estimators amortise Bayesian inference by replacing
+per-dataset sampling with a single trained mapping. Because their
+training is itself Monte Carlo integration, the variance-reduction
+toolbox of Monte Carlo applies to the training loop. This thesis has
+shown that Rao-Blackwellisation, in particular, is a cheap and
+reliable lever: where a parameter block is conditionally conjugate,
+integrating it out of the loss provably reduces the variance of the
+training gradient, and in the regimes studied it drives the trained
+estimator substantially closer to the Bayes-optimal floor. Conditional
+conjugacy, long exploited to make Gibbs sampling possible, turns out
+to be equally useful for training the estimators that aim to replace
+it.

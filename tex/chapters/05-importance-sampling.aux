@@ -1,0 +1,103 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Importance Sampling}{39}{chapter.5}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{loa}{\addvspace {10\p@ }}
+\newlabel{ch:importance-sampling}{{5}{39}{Importance Sampling}{chapter.5}{}}
+\MT@newlabel{eq:variance-gap}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Importance sampling}{40}{section.5.1}\protected@file@percent }
+\newlabel{sec:is-basics}{{5.1}{40}{Importance sampling}{section.5.1}{}}
+\newlabel{eq:is-basic-identity}{{5.1}{40}{Importance sampling}{section.5.1}{}}
+\newlabel{eq:is-optimal-scalar}{{5.1}{40}{Importance sampling}{equation.5.1.1}{}}
+\MT@newlabel{eq:is-optimal-scalar}
+\newlabel{eq:snis}{{5.2}{40}{Importance sampling}{equation.5.1.2}{}}
+\newlabel{eq:ess}{{5.3}{40}{Importance sampling}{equation.5.1.3}{}}
+\citation{cho2014gru}
+\newlabel{eq:is-identity}{{5.4}{41}{Importance sampling}{equation.5.1.4}{}}
+\MT@newlabel{eq:is-identity}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Application to an AR(1) model}{41}{section.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.1}The AR(1) model and a recurrent estimator}{41}{subsection.5.2.1}\protected@file@percent }
+\newlabel{sec:ar1-model}{{5.2.1}{41}{The AR(1) model and a recurrent estimator}{subsection.5.2.1}{}}
+\MT@newlabel{eq:ar1}
+\MT@newlabel{eq:ar1}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Example AR(1) realisations across the prior ($T = 100$, from the stationary distribution). Persistence grows with $\rho $ (columns): white noise at $\rho = 0$, a near-random-walk at $\rho = 0.99$. The noise scale $\sigma $ (rows) sets the amplitude.}}{42}{figure.caption.24}\protected@file@percent }
+\newlabel{fig:ar1-examples}{{5.1}{42}{Example AR(1) realisations across the prior ($T = 100$, from the stationary distribution). Persistence grows with $\rho $ (columns): white noise at $\rho = 0$, a near-random-walk at $\rho = 0.99$. The noise scale $\sigma $ (rows) sets the amplitude}{figure.caption.24}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.2}A family of proposals}{42}{subsection.5.2.2}\protected@file@percent }
+\newlabel{sec:is-proposals}{{5.2.2}{42}{A family of proposals}{subsection.5.2.2}{}}
+\newlabel{eq:is-weight}{{5.5}{42}{A family of proposals}{equation.5.2.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.2}{\ignorespaces The Beta proposal family. \textbf  {(a)} The $\rho $-proposal $\mathrm  {Beta}(\alpha ,\alpha )$: $\alpha < 1$ oversamples the boundaries $|\rho | \to 1$, $\alpha > 1$ the interior, $\alpha = 1$ is uniform. \textbf  {(b)} The $\sigma $-proposal $\mathrm  {Beta}(\alpha ,1)$: $\alpha < 1$ oversamples small $\sigma $, $\alpha > 1$ large $\sigma $. \textbf  {(c, d)} The corresponding importance weights $w = p/q$.}}{43}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:is-proposals}{{5.2}{43}{The Beta proposal family. \textbf {(a)} The $\rho $-proposal $\mathrm {Beta}(\alpha ,\alpha )$: $\alpha < 1$ oversamples the boundaries $|\rho | \to 1$, $\alpha > 1$ the interior, $\alpha = 1$ is uniform. \textbf {(b)} The $\sigma $-proposal $\mathrm {Beta}(\alpha ,1)$: $\alpha < 1$ oversamples small $\sigma $, $\alpha > 1$ large $\sigma $. \textbf {(c, d)} The corresponding importance weights $w = p/q$}{figure.caption.25}{}}
+\newlabel{eq:is-weight-sigma}{{5.2.2}{43}{A family of proposals}{equation.5.2.5}{}}
+\MT@newlabel{eq:ess}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.3}Results}{43}{subsection.5.2.3}\protected@file@percent }
+\newlabel{sec:is-results}{{5.2.3}{43}{Results}{subsection.5.2.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.3}{\ignorespaces Training draws in the $(\rho ,\sigma )$ plane, coloured by importance weight $w$ (log scale). \textbf  {(a)} The uniform prior ($\alpha = 1$): even draws, unit weights. \textbf  {(b)} An aggressive proposal ($\alpha = 0.2$): draws cluster on the $|\rho | \to 1$ edges and the small-$\sigma $ floor (small weights, dark), leaving the interior and large $\sigma $ sparse (large weights, bright).}}{44}{figure.caption.26}\protected@file@percent }
+\newlabel{fig:is-samples}{{5.3}{44}{Training draws in the $(\rho ,\sigma )$ plane, coloured by importance weight $w$ (log scale). \textbf {(a)} The uniform prior ($\alpha = 1$): even draws, unit weights. \textbf {(b)} An aggressive proposal ($\alpha = 0.2$): draws cluster on the $|\rho | \to 1$ edges and the small-$\sigma $ floor (small weights, dark), leaving the interior and large $\sigma $ sparse (large weights, bright)}{figure.caption.26}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.1}{\ignorespaces Test MSE by proposal strength $\alpha $ and region, with the mean effective sample size (batch size $256$). Regions: the near-non-stationary boundary $|\rho | > 0.8$, low noise $\sigma < 0.25A$, and high noise $\sigma > 0.75A$.}}{44}{table.caption.27}\protected@file@percent }
+\newlabel{tab:is-sweep}{{5.1}{44}{Test MSE by proposal strength $\alpha $ and region, with the mean effective sample size (batch size $256$). Regions: the near-non-stationary boundary $|\rho | > 0.8$, low noise $\sigma < 0.25A$, and high noise $\sigma > 0.75A$}{table.caption.27}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.4}{\ignorespaces Test MSE by region for each proposal strength $\alpha $. The baseline and the two milder boundary proposals ($\alpha = 1, 0.5, 0.3$) sit lowest and together; the interior tilt $\alpha = 1.5$ is intermediate, and the extremes $\alpha = 0.1$ and $\alpha = 2$ are worse in every region.}}{45}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:is-region}{{5.4}{45}{Test MSE by region for each proposal strength $\alpha $. The baseline and the two milder boundary proposals ($\alpha = 1, 0.5, 0.3$) sit lowest and together; the interior tilt $\alpha = 1.5$ is intermediate, and the extremes $\alpha = 0.1$ and $\alpha = 2$ are worse in every region}{figure.caption.28}{}}
+\MT@newlabel{eq:is-weight}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.4}The gradient variance, measured directly}{45}{subsection.5.2.4}\protected@file@percent }
+\newlabel{sec:grad-variance}{{5.2.4}{45}{The gradient variance, measured directly}{subsection.5.2.4}{}}
+\MT@newlabel{eq:is-identity}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.5}{\ignorespaces Seed-averaged validation MSE over training for the six proposals. The three milder settings ($\alpha = 1, 0.5, 0.3$) converge together near the floor; the interior tilt $\alpha = 1.5$ sits a little above them, and the extremes $\alpha = 0.1$ and $\alpha = 2$ stay higher still, jitterier and settling higher.}}{46}{figure.caption.29}\protected@file@percent }
+\newlabel{fig:is-curves}{{5.5}{46}{Seed-averaged validation MSE over training for the six proposals. The three milder settings ($\alpha = 1, 0.5, 0.3$) converge together near the floor; the interior tilt $\alpha = 1.5$ sits a little above them, and the extremes $\alpha = 0.1$ and $\alpha = 2$ stay higher still, jitterier and settling higher}{figure.caption.29}{}}
+\newlabel{eq:grad-est}{{5.2.4}{46}{The gradient variance, measured directly}{subsection.5.2.4}{}}
+\MT@newlabel{eq:snis}
+\newlabel{eq:grad-var}{{5.2.4}{46}{The gradient variance, measured directly}{subsection.5.2.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.6}{\ignorespaces Per-minibatch gradient variance by proposal strength, as the ratio $V(\alpha )/V(1)$ to the uniform baseline, measured at a fresh random initialisation and averaged over three seeds (error bars show the seed spread). The dashed line marks the uniform baseline at one; every proposal lies above it, so none reduces the variance, and the two extremes ($\alpha = 0.1$ and $\alpha = 2$) inflate it by roughly an order of magnitude.}}{47}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:grad-variance}{{5.6}{47}{Per-minibatch gradient variance by proposal strength, as the ratio $V(\alpha )/V(1)$ to the uniform baseline, measured at a fresh random initialisation and averaged over three seeds (error bars show the seed spread). The dashed line marks the uniform baseline at one; every proposal lies above it, so none reduces the variance, and the two extremes ($\alpha = 0.1$ and $\alpha = 2$) inflate it by roughly an order of magnitude}{figure.caption.30}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5.2}{\ignorespaces Test MSE of the GRU estimator and the Gibbs posterior-mean (Bayes) reference, by parameter, on a held-out test set.}}{47}{table.caption.31}\protected@file@percent }
+\newlabel{tab:gru-vs-gibbs}{{5.2}{47}{Test MSE of the GRU estimator and the Gibbs posterior-mean (Bayes) reference, by parameter, on a held-out test set}{table.caption.31}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2.5}Why reweighting cannot help here}{47}{subsection.5.2.5}\protected@file@percent }
+\newlabel{sec:why}{{5.2.5}{47}{Why reweighting cannot help here}{subsection.5.2.5}{}}
+\MT@newlabel{eq:is-identity}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.7}{\ignorespaces Estimates from the baseline GRU (blue) and the Gibbs posterior mean (grey) against the truth, for $\rho $ (left) and $\sigma $ (centre); the worst-MSE cases are red. Right: one of them as a realisation, an extreme series with $\rho \approx -0.99$ and $\sigma $ at the top of its range. The GRU recovers $\rho $ exactly, though the series looks the hardest of all; both it and Gibbs underestimate the extreme $\sigma $, so that residual is shared with the Bayes-optimal sampler, not something the network could train away.}}{48}{figure.caption.32}\protected@file@percent }
+\newlabel{fig:sigma-failure}{{5.7}{48}{Estimates from the baseline GRU (blue) and the Gibbs posterior mean (grey) against the truth, for $\rho $ (left) and $\sigma $ (centre); the worst-MSE cases are red. Right: one of them as a realisation, an extreme series with $\rho \approx -0.99$ and $\sigma $ at the top of its range. The GRU recovers $\rho $ exactly, though the series looks the hardest of all; both it and Gibbs underestimate the extreme $\sigma $, so that residual is shared with the Bayes-optimal sampler, not something the network could train away}{figure.caption.32}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.8}{\ignorespaces Test error binned by $\rho $ (top row) and by $\sigma $ (bottom row), for the baseline (blue), the boundary proposal $\alpha = 0.3$ (red), and the opposite tilt $\alpha = 2$ (green). The error lives in the $\rho $-interior and at large $\sigma $, not at the boundary or low-$\sigma $ tail the proposals target; neither overlay improves on the baseline.}}{49}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:binned-mse}{{5.8}{49}{Test error binned by $\rho $ (top row) and by $\sigma $ (bottom row), for the baseline (blue), the boundary proposal $\alpha = 0.3$ (red), and the opposite tilt $\alpha = 2$ (green). The error lives in the $\rho $-interior and at large $\sigma $, not at the boundary or low-$\sigma $ tail the proposals target; neither overlay improves on the baseline}{figure.caption.33}{}}
+\MT@newlabel{eq:is-weight}
+\MT@newlabel{eq:ess}
+\MT@newlabel{eq:snis}
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}When importance sampling can help}{49}{section.5.3}\protected@file@percent }
+\newlabel{sec:when}{{5.3}{49}{When importance sampling can help}{section.5.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Discussion}{50}{section.5.4}\protected@file@percent }
+\newlabel{sec:is-discussion}{{5.4}{50}{Discussion}{section.5.4}{}}
+\MT@newlabel{eq:variance-gap}
+\@setckpt{chapters/05-importance-sampling}{
+\setcounter{page}{52}
+\setcounter{equation}{5}
+\setcounter{enumi}{3}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{0}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{5}
+\setcounter{section}{4}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{8}
+\setcounter{table}{2}
+\setcounter{parentequation}{0}
+\setcounter{caption@flags}{2}
+\setcounter{continuedfloat}{0}
+\setcounter{subfigure}{0}
+\setcounter{subtable}{0}
+\setcounter{float@type}{4}
+\setcounter{AlgoLine}{0}
+\setcounter{algocfline}{2}
+\setcounter{algocfproc}{2}
+\setcounter{algocf}{2}
+\setcounter{NAT@ctr}{0}
+\setcounter{section@level}{1}
+\setcounter{Item}{8}
+\setcounter{Hfootnote}{0}
+\setcounter{bookmark@seq@number}{61}
+\setcounter{theorem}{0}
+}

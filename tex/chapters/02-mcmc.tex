@@ -1,0 +1,849 @@
+% ================================================================
+%  CHAPTER 2 -- MARKOV CHAIN MONTE CARLO
+%  Status: DRAFT v2 (2026-05-18). Adjustments A-D applied:
+%    A -- MH detailed-balance verification moved to Appendix A
+%    B -- MH -> Gibbs bridge via proposal-tuning difficulty
+%    C -- Monte Carlo integration given an explicit equation
+%    D -- more direct register (less narrator scaffolding)
+% ================================================================
+\chapter{Bayesian Inference}
+\label{ch:mcmc}
+
+Bayesian inference treats an unknown parameter vector
+$\bm{\theta} \in \Theta$ as a random quantity~\citep{gelman2013bda}.
+Given a likelihood
+$p(\mathbf{y} \given \bm{\theta})$ for observed data $\mathbf{y}$ and
+a prior density $p(\bm{\theta})$, Bayes' rule combines the two into
+the posterior:
+%
+\begin{equation}
+  p(\bm{\theta} \given \mathbf{y})
+  = \frac{p(\mathbf{y} \given \bm{\theta})\,p(\bm{\theta})}
+         {p(\mathbf{y})},
+  \qquad \text{where} \quad
+  p(\mathbf{y}) = \int_{\Theta}
+  p(\mathbf{y} \given \bm{\theta})\,p(\bm{\theta}) \dd\bm{\theta}.
+  \label{eq:bayes-rule}
+\end{equation}
+%
+For inference, we are quite often interested in summaries of the posterior distribution: posterior means, variances, quantiles, or more generally posterior expectations
+$\E[g(\bm{\theta}) \given \mathbf{y}] = \int g(\bm{\theta})\,
+p(\bm{\theta} \given \mathbf{y}) \dd\bm{\theta}$ of some function $g$.
+
+Two obstacles are commonly encountered in Bayesian inference. The first is that the marginal likelihood, 
+$p(\mathbf{y})$, is difficult to evaluate. This means that we generally can only find the posterior up to a normalising constant,
+%
+\begin{equation}
+  p(\bm{\theta} \given \mathbf{y}) \;\propto\;
+  p(\mathbf{y} \given \bm{\theta})\,p(\bm{\theta}).
+  \label{eq:unnormalised}
+\end{equation}
+%
+The second is that, even when $p(\mathbf{y})$ is available, $\bm{\theta}$ can be high-dimensional, making evaluation of posterior expectations computationally expensive.
+
+Monte Carlo integration can be applied to help solve these problems, approximating an intractable expectation by a sample average. In the case of posterior inference, samples $\bm{\theta}^{(1)}, \dots, \bm{\theta}^{(N)}$ are
+drawn from the posterior $p(\bm{\theta} \given \mathbf{y})$, then
+%
+\begin{equation}
+  \E[g(\bm{\theta}) \given \mathbf{y}]
+  \;\approx\; \frac{1}{N}\sum_{i=1}^{N} g(\bm{\theta}^{(i)}),
+  \label{eq:mc-integration}
+\end{equation}
+%
+with the approximation improving as $N$ grows. The difficulty is the
+sampling step: the posterior~\eqref{eq:unnormalised} cannot, in general,
+be sampled directly. Markov chain Monte Carlo (MCMC) resolves this by
+producing the samples in~\eqref{eq:mc-integration} not independently
+but as the states of a Markov chain constructed to have the posterior
+as its limiting distribution.
+
+
+% ----------------------------------------------------------------
+\section{Conjugate Models}
+\label{sec:conjugate}
+
+Whether MCMC is needed depends entirely on the model. For a
+small class of \emph{conjugate} models the posterior is itself a
+standard distribution that can be sampled directly; the draws
+in~\eqref{eq:mc-integration} are then genuinely independent, and plain
+Monte Carlo integration applies as written, with no chain required.
+Alternatively, conditional conjugacy may hold for individual blocks of parameters, where each block's conditional posterior is a standard distribution even when the joint posterior is not. This is the structure the Gibbs sampler (introduced in Section~\ref{sec:gibbs}) exploits to build a chain. Additionally, for models with no such structure the posterior is known only up to
+proportionality~\eqref{eq:unnormalised}; this is the general case that MCMC
+addresses by constructing posterior samples indirectly, as the states
+of a Markov chain.
+
+% subsection - conjugate linear regression example
+\subsection{A conjugate example: linear regression}
+\label{sec:conj-linreg}
+
+The canonical conjugate model is Bayesian linear regression. The
+observations $\mathbf{y} \in \reals^n$ are taken to be a combination of a linear function of a fixed
+design matrix $X \in \reals^{n \times p}$ with noise,
+%
+\begin{equation}
+  \mathbf{y} = X\bm{\beta} + \bm{\varepsilon}, \qquad
+  \bm{\varepsilon} \sim \Normal(\mathbf{0}, \sigma^2 I),
+\end{equation}
+%
+Additionally, the priors on the coefficients $\bm{\beta} \in \reals^p$
+and the noise $\sigma^2$ can be chosen to be:
+%
+\begin{equation}
+  \bm{\beta} \sim \Normal(\mathbf{0}, \sigma_0^2 I_p), \qquad
+  \tau \equiv \sigma^{-2} \sim
+  \mathcal{U}[\tau_{\text{low}}, \tau_{\text{high}}],
+  \label{eq:lr-model}
+\end{equation}
+%
+where we introduce the noise precision $\tau$ for simplicity. The
+likelihood is then
+%
+\begin{equation}
+  p(\mathbf{y} \given \bm{\beta}, \tau)
+  = \frac{|\tau I|^{1/2}}{(2\pi)^{n/2}}
+    \exp\!\left \{-\frac{\tau}{2}
+    (\mathbf{y} - X\bm{\beta})^{\!\top}(\mathbf{y} - X\bm{\beta})\right \}
+\end{equation}
+%
+and the prior on the coefficients is
+%
+\begin{equation}
+  p(\bm{\beta})
+  = \frac{|\sigma_0^2 I_p|^{-1/2}}{(2\pi)^{p/2}}
+    \exp\!\left \{-\frac{1}{2}\,\sigma_0^{-2}\,
+    \bm{\beta}^{\!\top}\bm{\beta}\right \}.
+\end{equation}
+%
+\textbf{Case 1: known $\tau$.} Now let us suppose that the noise
+variance $\sigma^2$ is known, and we are interested in the posterior
+over $\bm{\beta}$ alone. By applying Bayes' rule, the posterior is then
+%
+\begin{align}
+  p(\bm{\beta} \given \mathbf{y}, \tau)
+  &\propto p(\mathbf{y} \given \bm{\beta}, \tau)\,p(\bm{\beta}) \notag\\
+  &\propto \exp\!\left \{-\frac{\tau}{2}
+    (\mathbf{y} - X\bm{\beta})^{\!\top}(\mathbf{y} - X\bm{\beta})
+    -\frac{1}{2}\,\sigma_0^{-2}\,\bm{\beta}^{\!\top}\bm{\beta}\right \} \\
+  &\propto \exp\!\left \{-\frac{1}{2}\big[
+    \tau\,(\mathbf{y} - X\bm{\beta})^{\!\top}(\mathbf{y} - X\bm{\beta})
+    + \sigma_0^{-2}\,\bm{\beta}^{\!\top}\bm{\beta}\big]\right \} \\
+  &\propto \exp\!\left \{-\frac{1}{2}\big[
+    \bm{\beta}^{\!\top}\big(\sigma_0^{-2} I_p + \tau X^{\!\top}X\big)
+    \bm{\beta}
+    - 2\,\tau\,\bm{\beta}^{\!\top}X^{\!\top}\mathbf{y}\big]\right \} \\
+  &\propto \exp\!\left \{-\frac{1}{2}(\bm{\beta} - \bm{\beta}_n)^{\!\top}
+    \Sigma_n^{-1}(\bm{\beta} - \bm{\beta}_n)\right \},
+\end{align}
+%
+where we have defined the posterior covariance and mean as
+%
+\begin{equation}
+  \Sigma_n := \big(\sigma_0^{-2} I_p + \tau X^{\!\top}X\big)^{-1},
+  \qquad
+  \bm{\beta}_n := \Sigma_n\,\tau X^{\!\top}\mathbf{y}.
+  \label{eq:lr-defs}
+\end{equation}
+%
+Note that the posterior is Gaussian:
+%
+\begin{equation}
+  \bm{\beta} \given \mathbf{y}, \tau \sim \Normal(\bm{\beta}_n, \Sigma_n).
+  \label{eq:lr-conditional}
+\end{equation}
+%
+We say that we have chosen a conjugate prior for $\bm{\beta}$, because
+the posterior is in the same family as the prior.
+
+
+\textbf{Case 2: known $\bm{\beta}$.} Now let us suppose that the
+coefficients $\bm{\beta}$ are known, and we are interested in the
+posterior over the noise precision $\tau$ alone. By applying Bayes'
+rule, the posterior is then,
+%
+\begin{align}
+  p(\tau \given \mathbf{y}, \bm{\beta})
+  &\propto p(\mathbf{y} \given \bm{\beta}, \tau)\,p(\tau) \notag\\
+  &\propto \tau^{n/2} \exp\!\left \{-\frac{\tau}{2}
+    (\mathbf{y} - X\bm{\beta})^{\!\top}(\mathbf{y} - X\bm{\beta})\right \}
+    \mathbb{I}_{[\tau_{\text{low}} \le \tau \le \tau_{\text{high}}]},
+\end{align}
+%
+where we have used the fact that the prior on $\tau$ is uniform, and
+therefore constant with respect to $\tau$. The posterior is then a
+truncated Gamma distribution,
+%
+\begin{equation}
+  \tau \given \mathbf{y}, \bm{\beta} \sim
+  \Gamma\!\left(\frac{n}{2} + 1,
+  \frac{1}{2}(\mathbf{y} - X\bm{\beta})^{\!\top}(\mathbf{y} - X\bm{\beta})
+  \right) 
+  \;\;\text{on}\;\; (\tau_{\text{low}}, \tau_{\text{high}}).
+  \label{eq:lr-tau-posterior}
+\end{equation}
+%
+Like Case~1, this is a conjugacy: a uniform prior is the flat,
+shape-one rate-zero member of the Gamma family, so the posterior is
+again a Gamma, here truncated to the prior support. What matters for the
+sampler of Section~\ref{sec:gibbs}, though, is only that this full
+conditional is a standard distribution that can be drawn from directly,
+which it is.
+
+In the above cases, the posterior is tractable and can be sampled
+directly. However, consider the model where both $\bm{\beta}$ and
+$\tau$ are unknown, and we are interested in the joint posterior over
+both parameters. We are able to still exploit these conditional
+conjugacies in MCMC, discussed next, in the Gibbs sampler. This
+property will also be fundamental in Chapter~\ref{ch:rao-blackwell} on
+Rao-Blackwellisation.
+
+
+% ----------------------------------------------------------------
+\section{Markov chain Monte Carlo}
+\label{sec:mcmc-idea}
+
+MCMC is a method to produce samples from a target distribution by constructing a Markov chain with the target as its equilibrium distribution~\citep{brooks2011handbook, givens2013computational}. When the target is the posterior distribution of a Bayesian model, MCMC can be used even without appealing to conjugacy.
+
+
+A Markov chain on $\Theta$ is specified by a transition kernel
+$T(\bm{\theta}' \given \bm{\theta})$, the density of moving to
+$\bm{\theta}'$ from the current state $\bm{\theta}$. A distribution
+$\pi$ is \emph{stationary} for $T$ if it is left invariant by the
+transition, that is, if
+$\int T(\bm{\theta}' \given \bm{\theta})\,\pi(\bm{\theta})
+\dd\bm{\theta} = \pi(\bm{\theta}')$. The design problem for MCMC is to
+construct a kernel whose stationary distribution is the target
+posterior. A convenient sufficient condition for stationarity is the
+following symmetry property.
+
+\begin{definition}[Detailed balance]
+\label{def:detailed-balance}
+A Markov chain with transition kernel
+$T(\bm{\theta}' \given \bm{\theta})$ satisfies \emph{detailed balance}
+with respect to a distribution $\pi$ if
+%
+\begin{equation}
+  T(\bm{\theta}' \given \bm{\theta})\,\pi(\bm{\theta})
+  = T(\bm{\theta} \given \bm{\theta}')\,\pi(\bm{\theta}')
+  \qquad \text{for all } \bm{\theta}, \bm{\theta}' \in \Theta.
+  \label{eq:detailed-balance}
+\end{equation}
+\end{definition}
+
+A chain satisfying detailed balance with respect to $\pi$ is called
+\emph{reversible}, and $\pi$ is then stationary for it. Integrating
+both sides of~\eqref{eq:detailed-balance} over $\bm{\theta}$,
+%
+\begin{equation}
+  \int_{\Theta} T(\bm{\theta}' \given \bm{\theta})\,\pi(\bm{\theta})
+  \dd\bm{\theta}
+  = \int_{\Theta} T(\bm{\theta} \given \bm{\theta}')\,\pi(\bm{\theta}')
+  \dd\bm{\theta}
+  = \pi(\bm{\theta}') \int_{\Theta} T(\bm{\theta} \given \bm{\theta}')
+  \dd\bm{\theta}
+  = \pi(\bm{\theta}'),
+\end{equation}
+%
+where the last equality holds because $T(\,\cdot \given
+\bm{\theta}')$ is a probability density. Hence detailed balance
+implies stationarity.
+
+Stationarity alone does not guarantee that a chain started from an
+arbitrary state converges to $\pi$. The further requirement is
+\emph{ergodicity}: the chain must be irreducible (able to reach any
+region of $\Theta$ from any other) and aperiodic. A chain that is
+reversible with respect to $\pi$ and ergodic converges to $\pi$ from
+any starting state, and the sample
+average~\eqref{eq:mc-integration} converges to the corresponding
+expectation~\citep{robert2004monte, brooks2011handbook}. This holds even though the states
+of the chain are not independent: successive draws are correlated,
+each generated from the one before. 
+
+The correlation between successive MCMC samples means that sample averages have higher variance than when using independent posterior draws. This can be quantified using effective sample size, which is the (typically smaller) number of independent samples that would give the same variance as MCMC sample averages.
+
+In practice the early states, drawn before the chain has reached its stationary regime, are
+discarded as \emph{burn-in}. Constructing an ergodic kernel that is
+reversible with respect to the posterior is the task of the algorithms
+that follow.
+
+MCMC is not a single algorithm but a class of algorithms. Below, we describe several methods for constructing MCMC chains with the desired equilibrium distribution.
+
+% ----------------------------------------------------------------
+\subsection{The Metropolis--Hastings algorithm}
+\label{sec:metropolis-hastings}
+
+The Metropolis--Hastings algorithm~\citep{metropolis1953equation,
+hastings1970mcmc} builds a reversible chain from an arbitrary proposal
+mechanism by accepting or rejecting proposed moves. From the current
+state $\bm{\theta}$, a candidate $\bm{\theta}'$ is drawn from a
+\emph{proposal distribution} $q(\bm{\theta}' \given \bm{\theta})$ and
+accepted with probability
+%
+\begin{equation}
+  \alpha(\bm{\theta}, \bm{\theta}')
+  = \min\!\left(1,\;
+  \frac{p(\bm{\theta}' \given \mathbf{y})\,
+        q(\bm{\theta} \given \bm{\theta}')}
+       {p(\bm{\theta} \given \mathbf{y})\,
+        q(\bm{\theta}' \given \bm{\theta})}\right);
+  \label{eq:mh-acceptance}
+\end{equation}
+%
+otherwise the chain remains at $\bm{\theta}$. The procedure is given
+in Algorithm~\ref{alg:mh}.
+
+\begin{algorithm}[H]
+\caption{Metropolis--Hastings}
+\label{alg:mh}
+\KwIn{unnormalised posterior, proposal $q$, chain length $N$,
+initial state $\bm{\theta}^{(0)}$}
+\KwOut{chain $\bm{\theta}^{(0)}, \dots, \bm{\theta}^{(N)}$}
+\For{$i = 0, 1, \dots, N-1$}{
+  draw $\bm{\theta}' \sim q(\,\cdot \given \bm{\theta}^{(i)})$\;
+  compute $\alpha(\bm{\theta}^{(i)}, \bm{\theta}')$
+  from~\eqref{eq:mh-acceptance}\;
+  draw $u \sim \Uniform(0,1)$\;
+  \eIf{$u \le \alpha(\bm{\theta}^{(i)}, \bm{\theta}')$}{
+    $\bm{\theta}^{(i+1)} \gets \bm{\theta}'$\;
+  }{
+    $\bm{\theta}^{(i+1)} \gets \bm{\theta}^{(i)}$\;
+  }
+}
+\end{algorithm}
+
+The acceptance probability~\eqref{eq:mh-acceptance} depends on the
+posterior only through the ratio
+$p(\bm{\theta}' \given \mathbf{y}) /
+p(\bm{\theta} \given \mathbf{y})$. By Bayes'
+rule~\eqref{eq:bayes-rule} the evidence $p(\mathbf{y})$ cancels from
+this ratio,
+%
+\begin{equation}
+  \frac{p(\bm{\theta}' \given \mathbf{y})}
+       {p(\bm{\theta} \given \mathbf{y})}
+  = \frac{p(\mathbf{y} \given \bm{\theta}')\,p(\bm{\theta}')}
+         {p(\mathbf{y} \given \bm{\theta})\,p(\bm{\theta})},
+  \label{eq:ratio-cancels}
+\end{equation}
+%
+so the algorithm requires only the unnormalised
+posterior~\eqref{eq:unnormalised}. This is what makes
+Metropolis--Hastings applicable to the generic intractable posterior.
+The chain it produces satisfies detailed balance with respect to the
+posterior, and is therefore reversible with the posterior as its
+stationary distribution~\citep{chib1995understanding}; the
+verification is a direct substitution of~\eqref{eq:mh-acceptance} into
+Definition~\ref{def:detailed-balance}, and is given in
+Appendix~\ref{app:mh-detailed-balance}. An application of the Metropolis--Hastings algorithm to estimate the parameters of a normal distribution is given in Example~1, introduced at the end of this chapter, and then used in Chapter~\ref{ch:amortization} where it is used as a benchmark against a neural estimator.
+
+This algorithm is general, but its efficiency and correctness depend sharply on the
+proposal $q$. A proposal that takes small steps yields a highly
+autocorrelated chain that explores $\Theta$ slowly; a proposal that
+takes large steps is frequently rejected and the chain stalls. Tuning
+$q$ to balance these failure modes is difficult, and becomes more so
+as the dimension of $\bm{\theta}$ grows, particularly when the
+components of $\bm{\theta}$ differ in scale or are strongly
+correlated. For some special cases, we can
+avoid joint proposals entirely and instead update the components of
+$\bm{\theta}$ one block at a time. This is the idea behind the Gibbs
+sampler.
+
+% ----------------------------------------------------------------
+\subsection{The Gibbs sampler}
+\label{sec:gibbs}
+
+The Gibbs sampler~\citep{geman1984gibbs, casella1992gibbs} can be applied
+whenever the \emph{full conditional} distributions of the model are
+tractable. Partition the parameter vector into blocks
+$\bm{\theta} = (\bm{\theta}^{(1)}, \dots, \bm{\theta}^{(B)})$ and
+write $\bm{\theta}^{(-b)}$ for all blocks but the $b$-th. The full
+conditional of block $b$ is the distribution
+$p(\bm{\theta}^{(b)} \given \bm{\theta}^{(-b)}, \mathbf{y})$ of that
+block given the data and the remaining blocks. The Gibbs sampler
+updates each block in turn by drawing it from its full conditional, as
+set out in Algorithm~\ref{alg:gibbs}.
+
+\begin{algorithm}[H]
+\caption{Gibbs sampler (systematic scan)}
+\label{alg:gibbs}
+\KwIn{full conditionals
+$p(\bm{\theta}^{(b)} \given \bm{\theta}^{(-b)}, \mathbf{y})$,
+$b = 1, \dots, B$; chain length $N$; initial state
+$\bm{\theta}^{(0)}$}
+\KwOut{chain $\bm{\theta}^{(0)}, \dots, \bm{\theta}^{(N)}$}
+\For{$i = 0, 1, \dots, N-1$}{
+  \For{$b = 1, \dots, B$}{
+    draw $\bm{\theta}^{(i+1,\,b)} \sim
+    p\big(\bm{\theta}^{(b)} \given
+    \bm{\theta}^{(i+1,\,1)}, \dots, \bm{\theta}^{(i+1,\,b-1)},
+    \bm{\theta}^{(i,\,b+1)}, \dots, \bm{\theta}^{(i,\,B)},
+    \mathbf{y}\big)$\;
+  }
+}
+\end{algorithm}
+
+The Gibbs sampler involves many Metropolis--Hastings steps whose proposal
+for a given block $b$ is the full conditional itself. Taking
+$q(\bm{\theta}^{(b)\prime} \given \bm{\theta}) =
+p(\bm{\theta}^{(b)\prime} \given \bm{\theta}^{(-b)}, \mathbf{y})$
+in~\eqref{eq:mh-acceptance}, and noting that the remaining blocks
+$\bm{\theta}^{(-b)}$ are held fixed,
+%
+\begin{align}
+  \alpha
+  &= \min\!\left(1,\;
+     \frac{p(\bm{\theta}^{(b)\prime}, \bm{\theta}^{(-b)} \given
+            \mathbf{y})\;
+           p(\bm{\theta}^{(b)} \given \bm{\theta}^{(-b)},
+            \mathbf{y})}
+          {p(\bm{\theta}^{(b)}, \bm{\theta}^{(-b)} \given
+            \mathbf{y})\;
+           p(\bm{\theta}^{(b)\prime} \given \bm{\theta}^{(-b)},
+            \mathbf{y})}
+     \right)
+     \notag \\[4pt]
+  &= \min\!\left(1,\;
+     \frac{p(\bm{\theta}^{(b)\prime} \given \bm{\theta}^{(-b)},
+            \mathbf{y})\;
+           p(\bm{\theta}^{(-b)} \given \mathbf{y})\;
+           p(\bm{\theta}^{(b)} \given \bm{\theta}^{(-b)},
+            \mathbf{y})}
+          {p(\bm{\theta}^{(b)} \given \bm{\theta}^{(-b)},
+            \mathbf{y})\;
+           p(\bm{\theta}^{(-b)} \given \mathbf{y})\;
+           p(\bm{\theta}^{(b)\prime} \given \bm{\theta}^{(-b)},
+            \mathbf{y})}
+     \right) \\
+     &= 1
+  \label{eq:gibbs-acceptance}
+\end{align}
+%
+where the second line factorises the joint posterior as
+$p(\bm{\theta}^{(b)}, \bm{\theta}^{(-b)} \given \mathbf{y}) =
+p(\bm{\theta}^{(b)} \given \bm{\theta}^{(-b)}, \mathbf{y})\,
+p(\bm{\theta}^{(-b)} \given \mathbf{y})$, after which every factor
+cancels. The Gibbs sampler is therefore a Metropolis--Hastings
+algorithm with acceptance probability identically one: no proposal is
+ever rejected, and the tuning problem of
+Section~\ref{sec:metropolis-hastings} disappears.
+
+The price is that the full conditionals must be available in closed
+form and easy to sample. This is most readily guaranteed when the
+model is \emph{conditionally conjugate}: when, given the remaining
+blocks, each block has a prior conjugate to its likelihood, its full
+conditional belongs to a standard family. More generally, all the
+sampler needs is that each full conditional be a standard, samplable
+distribution. The recurring example in this thesis is the Bayesian
+linear regression of Section~\ref{sec:conj-linreg}, whose two full
+conditionals were derived there: a Gaussian for the coefficients given
+the precision, a truncated Gamma for the precision given the
+coefficients. The Gibbs sampler alternates these two tractable draws,
+worked in full as Example~2, where Chapter~\ref{ch:rao-blackwell} uses
+it to approximate a Bayes-optimal reference for the neural estimators of
+this thesis. The conditional
+structure that makes Gibbs sampling possible is, as
+Chapter~\ref{ch:rao-blackwell} shows, exactly the structure that
+Rao-Blackwellisation exploits.
+
+% ----------------------------------------------------------------
+% --- HMC subsection commented out pending review: it is not used by the
+% case studies or the contribution chapters. To re-enable, delete the
+% \iffalse below and the matching \fi after the Stan sentence. ---
+\iffalse
+\subsection{Hamiltonian Monte Carlo}
+\label{sec:hmc}
+
+Random-walk Metropolis--Hastings proposals carry no information about
+the shape of the posterior, and explore it inefficiently. Hamiltonian
+Monte Carlo (HMC)~\citep{neal2011mcmc, betancourt2017hmc} treats the
+parameter space as a physical system and simulates its dynamics to move
+through $\Theta$ more efficiently. By following the gradient of the
+log-posterior, it proposes distant states that are still accepted with
+high probability.
+
+HMC augments the parameter $\bm{\theta}$ with an auxiliary
+\emph{momentum} variable $\mathbf{r} \in \reals^d$ and treats the pair
+$(\bm{\theta}, \mathbf{r})$ as a physical system with Hamiltonian
+%
+\begin{equation}
+  H(\bm{\theta}, \mathbf{r}) = U(\bm{\theta}) + K(\mathbf{r}),
+  \qquad
+  U(\bm{\theta}) = -\log p(\bm{\theta} \given \mathbf{y}),
+  \qquad
+  K(\mathbf{r}) = \tfrac{1}{2}\mathbf{r}^{\!\top} M^{-1} \mathbf{r},
+  \label{eq:hamiltonian}
+\end{equation}
+%
+where the potential energy $U$ is the negative log-posterior, the
+kinetic energy $K$ is a Gaussian quadratic form, and $M$ is a
+symmetric positive-definite mass matrix. The joint distribution
+$\pi(\bm{\theta}, \mathbf{r}) \propto \exp\{-H(\bm{\theta},
+\mathbf{r})\} = p(\bm{\theta} \given \mathbf{y})\,
+\Normal(\mathbf{r} \given \mathbf{0}, M)$ has the posterior as its
+$\bm{\theta}$-marginal.
+
+Each iteration first refreshes the momentum by drawing
+$\mathbf{r} \sim \Normal(\mathbf{0}, M)$, then proposes a new state by
+simulating Hamilton's equations
+%
+\begin{equation}
+  \frac{\dd \bm{\theta}}{\dd t} = M^{-1}\mathbf{r},
+  \qquad
+  \frac{\dd \mathbf{r}}{\dd t} = -\nabla_{\bm{\theta}}
+  U(\bm{\theta})
+  \label{eq:hamiltons-equations}
+\end{equation}
+%
+for a fixed time. These equations have no closed-form solution and are
+approximated by the \emph{leapfrog integrator}, which alternates
+half-step momentum updates with full-step position updates over $L$
+steps of size $\epsilon$. The leapfrog map is time-reversible and
+volume-preserving, and the proposed state $(\bm{\theta}^{*},
+\mathbf{r}^{*})$ is accepted with probability
+%
+\begin{equation}
+  \alpha = \min\!\big(1,\;
+  \exp\{H(\bm{\theta}, \mathbf{r})
+  - H(\bm{\theta}^{*}, \mathbf{r}^{*})\}\big),
+  \label{eq:hmc-acceptance}
+\end{equation}
+%
+which corrects for the energy the integrator fails to conserve.
+Because the leapfrog scheme conserves the Hamiltonian closely even
+over long trajectories, the acceptance probability remains high while
+the proposal moves a large distance through $\Theta$.
+
+The performance of HMC depends on the step size $\epsilon$ and the
+number of steps $L$. The No-U-Turn Sampler~\citep{hoffman2014nuts}
+removes the need to tune $L$ by extending each trajectory until it
+begins to retrace itself, and tunes $\epsilon$ during warm-up. It is
+the default inference engine of the probabilistic programming language
+Stan~\citep{carpenter2017stan}.
+\fi
+
+% ----------------------------------------------------------------
+\section{Case studies}
+\label{sec:case-studies}
+
+The algorithms of this chapter are made concrete here on three models
+that recur throughout the thesis. Each is paired with the sampler
+suited to it --- the normal model with Metropolis--Hastings, and the
+linear-regression and autoregressive models with the Gibbs sampler ---
+and in every case the chain produces a posterior mean that a later
+chapter uses as the per-dataset reference against which a neural
+estimator is judged. Collecting the models here lets those chapters
+recall a model and its sampler in a line rather than re-derive them.
+
+% ................................................................
+\subsection{Example 1 --- the normal model}
+\label{sec:cs-normal}
+
+Consider estimating the parameters of a normal model from $n$
+independent observations,
+%
+\begin{equation}
+  (y_1, \dots, y_n \mid \mu, \sigma) \overset{\text{iid}}{\sim} \Normal(\mu, \sigma^2),
+  \qquad
+  \mu \sim \Normal(\mu_0, \sigma_0^2),
+  \qquad
+  \sigma \sim \Uniform(0, A),
+  \label{eq:normal-model}
+\end{equation}
+%
+with estimand $\bm{\theta} = (\mu, \sigma)$; later experiments take
+$\mu_0 = 0$, $\sigma_0 = 1$ and $A = 5$. The model is a controlled test case rather than a genuine
+application: its posterior can be written in closed form up to a
+normalising constant, so an accurate reference can be computed for
+every test dataset and an amortised estimator checked against it.
+
+The likelihood of the $n$ observations is
+%
+\begin{equation}
+  p(\mathbf{y} \given \mu, \sigma)
+  = \prod_{i=1}^{n} \frac{1}{\sqrt{2\pi}\,\sigma}
+    \exp\!\left(-\frac{(y_i - \mu)^2}{2\sigma^2}\right),
+\end{equation}
+%
+and Bayes' theorem combines it with the priors to give the posterior,
+up to a normalising constant,
+%
+\begin{equation}
+\begin{aligned}
+  p(\mu, \sigma \given \mathbf{y})
+  &\propto p(\mathbf{y} \given \mu, \sigma)\,p(\mu)\,p(\sigma) \\
+  &\propto \left(\prod_{i=1}^{n} \frac{1}{\sqrt{2\pi}\,\sigma}
+     \exp\!\left(-\frac{(y_i-\mu)^2}{2\sigma^2}\right)\right)
+     \frac{1}{\sqrt{2\pi}\,\sigma_0}
+     \exp\!\left(-\frac{(\mu-\mu_0)^2}{2\sigma_0^2}\right)
+     \frac{1}{A} \\
+  &\propto \sigma^{-n}
+     \exp\!\left(-\frac{1}{2\sigma^2}\sum_{i=1}^{n}(y_i-\mu)^2
+     - \frac{(\mu-\mu_0)^2}{2\sigma_0^2}\right),
+\end{aligned}
+\end{equation}
+%
+valid for $\sigma \in (0, A)$. Taking logarithms gives the
+log-posterior
+%
+\begin{equation}
+  \log p(\mu, \sigma \given \mathbf{y})
+  = -n\log\sigma
+    - \frac{1}{2\sigma^2}\sum_{i=1}^{n}(y_i - \mu)^2
+    - \frac{(\mu - \mu_0)^2}{2\sigma_0^2}
+    + C,
+\end{equation}
+%
+where $C$ is the constant that comes out from this proportionality. Note that we also enforce it to be $-\infty$ when $\sigma \notin (0, A)$. The dependence on the
+data simplifies through the identity
+$\sum_{i=1}^{n}(y_i - \mu)^2 = \sum_{i=1}^{n}(y_i - \bar{y})^2
++ n(\bar{y} - \mu)^2$, which gives
+%
+\begin{equation}
+  \log p(\mu, \sigma \given \mathbf{y})
+  = -n\log\sigma
+    - \frac{1}{2\sigma^2}\big(S + n(\bar{y} - \mu)^2\big)
+    - \frac{(\mu - \mu_0)^2}{2\sigma_0^2}
+    + C,
+  \label{eq:normal-logpost}
+\end{equation}
+%
+where $\bar{y} = \tfrac{1}{n}\sum_{i=1}^{n} y_i$ is the sample mean
+and $S = \sum_{i=1}^{n}(y_i - \bar{y})^2$ is $(n-1)$ times the sample
+variance. The data enter the posterior only through the pair
+$(\bar{y}, S)$, the sufficient statistics of the normal model.
+
+The joint posterior is not a standard distribution, but the
+log-posterior is all the Metropolis--Hastings algorithm requires. Its
+state is the parameter pair $\bm{\theta} = (\mu, \sigma)$. From the
+current state a candidate $\bm{\theta}' = (\mu', \sigma')$ is drawn from
+a typically symmetric random-walk proposal $q(\bm{\theta}' \given \bm{\theta})$ (a
+Gaussian step centred on the current state) and accepted with the
+Metropolis--Hastings probability. Given a symmetric proposal there is equality in the proposal density for the forward and reverse moves,
+$q(\bm{\theta}' \given \bm{\theta}) = q(\bm{\theta} \given \bm{\theta}')$
+and it cancels from the acceptance ratio, leaving
+%
+\begin{equation}
+  \alpha(\bm{\theta}, \bm{\theta}')
+  = \min\!\Big(1,\;
+    \exp\!\big\{
+      \log p(\bm{\theta}' \given \mathbf{y})
+      - \log p(\bm{\theta} \given \mathbf{y})
+    \big\}\Big),
+\end{equation}
+%
+a difference of log-posteriors in which the unknown constant $C$
+cancels. A candidate with $\sigma' \notin (0, A)$ has log-posterior
+$-\infty$, so $\alpha = 0$ and it is rejected. Iterating this
+accept--reject step yields a chain whose states, after burn-in, are
+draws from the posterior; their average estimates the posterior mean
+$\E[\bm{\theta} \given \mathbf{y}]$. Chapter~\ref{ch:amortization} uses
+this Metropolis--Hastings reference to assess a neural estimator of the
+same model.
+
+% ................................................................
+\subsection{Example 2 --- Bayesian linear regression}
+\label{sec:cs-linreg}
+
+Recall the two conjugate full conditionals derived for this model in
+Section~\ref{sec:conj-linreg}. Conditioned on the precision, the
+coefficients are Gaussian,
+$\bm{\beta} \given \mathbf{y}, \tau \sim
+\Normal(\bm{\beta}_n, \Sigma_n)$, with covariance and mean
+$\Sigma_n = (\sigma_0^{-2} I_p + \tau X^{\!\top}X)^{-1}$ and
+$\bm{\beta}_n = \Sigma_n\,\tau X^{\!\top}\mathbf{y}$; conditioned on the
+coefficients, the precision is a truncated Gamma. The joint posterior
+$p(\bm{\beta}, \tau \given \mathbf{y})$ combines the two and is not a
+standard distribution, but each conditional is, so a Gibbs sampler
+applies.
+
+Starting from an initial precision $\tau^{(0)}$, sweep $s$ updates the
+two blocks in turn, drawing each from its conditional evaluated at the
+other block's current value:
+%
+\begin{align}
+  \bm{\beta}^{(s)} \given \mathbf{y}, \tau^{(s-1)}
+  &\sim
+  \Normal\!\big(\bm{\beta}_n(\tau^{(s-1)}),\,
+  \Sigma_n(\tau^{(s-1)})\big),
+  \label{eq:lr-gibbs-beta}\\[2pt]
+  \tau^{(s)} \given \mathbf{y}, \bm{\beta}^{(s)}
+  &\sim
+  \text{Gamma}\!\Big(\tfrac{n}{2} + 1,\;
+  \tfrac{1}{2}\big\|\mathbf{y} - X\bm{\beta}^{(s)}\big\|^2\Big)
+  \;\;\text{on}\;\; (\tau_{\text{low}}, \tau_{\text{high}}),
+  \label{eq:lr-gibbs-tau}
+\end{align}
+%
+with $\bm{\beta}_n$ and $\Sigma_n$ recomputed at the updated precision.
+The coefficient draw is taken through the Cholesky factor of the
+precision matrix $\Sigma_n^{-1}$, so that $\Sigma_n$ need never be
+formed explicitly; the precision draw samples the truncated Gamma by
+inverting its cumulative distribution function on
+$(\tau_{\text{low}}, \tau_{\text{high}})$.
+
+After a burn-in of discarded sweeps, the retained draws
+$\{(\bm{\beta}^{(s)}, \tau^{(s)})\}_{s=1}^{S}$ are averaged --- the
+noise scale of each recovered as $\sigma^{(s)} = (\tau^{(s)})^{-1/2}$
+beforehand --- to give the posterior mean,
+%
+\begin{equation}
+  \frac{1}{S}\sum_{s=1}^{S}
+  \big(\bm{\beta}^{(s)},\, \sigma^{(s)}\big)
+  \;\longrightarrow\;
+  \E\big[(\bm{\beta}, \sigma) \given \mathbf{y}\big]
+  \qquad (S \to \infty).
+  \label{eq:lr-gibbs-postmean}
+\end{equation}
+%
+Chapter~\ref{ch:rao-blackwell} uses this sampler to compute a
+Bayes-optimal reference for its neural estimators, and the Gaussian
+$\bm{\beta}$-conditional is also the structure its Rao-Blackwellised
+loss exploits.
+
+% ................................................................
+\subsection{Example 3 --- the AR(1) model}
+\label{sec:cs-ar1}
+
+The first-order autoregressive process
+%
+\begin{equation}
+  x_t = \rho\,x_{t-1} + \varepsilon_t,
+  \qquad
+  \varepsilon_t \sim \Normal(0, \sigma^2),
+  \label{eq:ar1}
+\end{equation}
+%
+has autoregressive coefficient $\rho \in (-1, 1)$ and noise scale
+$\sigma > 0$, with estimand $\bm{\theta} = (\rho, \sigma)$, priors
+$\rho \sim \Uniform(-1, 1)$ and $\sigma \sim \Uniform(0, A)$, and is
+initialised from its stationary distribution
+$\Normal(0, \sigma^2/(1-\rho^2))$. Like linear regression it is
+conditionally conjugate in both parameters, so a Gibbs sampler draws
+from the exact posterior; its two full conditionals are derived next,
+in parallel with the linear-regression conditionals above.
+
+Conditioning on the first observation $x_1$, the likelihood of the
+remaining $T-1$ observations is
+%
+\begin{equation}
+  p(\mathbf{x} \given \rho, \sigma^2)
+  \propto (\sigma^2)^{-(T-1)/2}
+  \exp\!\Big(-\frac{1}{2\sigma^2}
+  \sum_{t=2}^{T}(x_t - \rho\,x_{t-1})^2\Big).
+\end{equation}
+
+\paragraph{The autoregressive coefficient.}
+As a function of $\rho$ the exponent is quadratic. Writing
+$S_1 = \sum_{t=2}^{T} x_{t-1}^2$ and
+$S_{01} = \sum_{t=2}^{T} x_t x_{t-1}$,
+%
+\begin{equation}
+  \sum_{t=2}^{T}(x_t - \rho\,x_{t-1})^2
+  = \rho^2 S_1 - 2\rho\,S_{01} + \sum_{t=2}^{T} x_t^2,
+\end{equation}
+%
+so, with the uniform prior $p(\rho) = \tfrac{1}{2}$ on $(-1, 1)$,
+%
+\begin{equation}
+  p(\rho \given \sigma^2, \mathbf{x})
+  \propto \exp\!\Big(-\frac{1}{2\sigma^2}
+  \big(\rho^2 S_1 - 2\rho\,S_{01}\big)\Big)\,
+  \mathbf{1}\{|\rho| < 1\}.
+\end{equation}
+%
+Completing the square,
+$\rho^2 S_1 - 2\rho\,S_{01}
+= S_1\,(\rho - S_{01}/S_1)^2 + \text{const}$, leaves a Gaussian kernel
+in $\rho$ truncated by the prior:
+%
+\begin{equation}
+  \rho \given \sigma^2, \mathbf{x}
+  \sim \Normal\!\Big(\frac{S_{01}}{S_1},\;
+  \frac{\sigma^2}{S_1}\Big)
+  \quad\text{on}\quad (-1, 1).
+\end{equation}
+%
+The conditional mean $S_{01}/S_1$ is the ordinary least-squares
+estimate of $\rho$, and its conditional variance is $\sigma^2/S_1$.
+Because $S_1 = \sum_{t} x_{t-1}^2$ grows as $|\rho| \to 1$ --- the
+stationary variance $\sigma^2/(1-\rho^2)$ inflates --- the posterior
+for $\rho$ sharpens towards the boundary, a fact
+Chapter~\ref{ch:importance-sampling} returns to.
+
+\paragraph{The noise scale.}
+Write the residual sum of squares as
+$\text{SSR} = \sum_{t=2}^{T}(x_t - \rho\,x_{t-1})^2$. The uniform
+prior $\sigma \sim \Uniform(0, A)$ induces, by the change of variables
+$\sigma \mapsto \sigma^2$, the density
+$p(\sigma^2) \propto (\sigma^2)^{-1/2}$ on $(0, A^2)$. Hence
+%
+\begin{equation}
+  p(\sigma^2 \given \rho, \mathbf{x})
+  \propto (\sigma^2)^{-(T-1)/2}
+  \exp\!\Big(-\frac{\text{SSR}}{2\sigma^2}\Big)\,
+  (\sigma^2)^{-1/2}
+  = (\sigma^2)^{-T/2}
+  \exp\!\Big(-\frac{\text{SSR}}{2\sigma^2}\Big),
+\end{equation}
+%
+the kernel of an inverse-Gamma density
+($\text{Inv-Gamma}(a, b)$ is proportional to
+$(\sigma^2)^{-a-1}e^{-b/\sigma^2}$) with shape
+$a = \tfrac{T}{2} - 1$ and scale $b = \tfrac{1}{2}\text{SSR}$,
+truncated to the prior support:
+%
+\begin{equation}
+  \sigma^2 \given \rho, \mathbf{x}
+  \sim \text{Inv-Gamma}\!\Big(\tfrac{T}{2} - 1,\;
+  \tfrac{1}{2}\text{SSR}\Big)
+  \quad\text{on}\quad (0, A^2).
+\end{equation}
+%
+\paragraph{The sampler.}
+Each Gibbs sweep draws $\rho$ then $\sigma^2$ from the two
+conditionals above. Both are standard distributions restricted to an
+interval, and both are sampled by the inverse-CDF method. For the
+truncated normal $\rho \given \sigma^2, \mathbf{x}$, with conditional
+mean $m = S_{01}/S_1$ and standard deviation $s = \sigma/\sqrt{S_1}$,
+a draw
+%
+\begin{equation}
+  u \sim \Uniform\!\Big(
+  \Phi\big(\tfrac{-1-m}{s}\big),\;
+  \Phi\big(\tfrac{1-m}{s}\big)\Big),
+  \qquad
+  \rho = m + s\,\Phi^{-1}(u),
+\end{equation}
+%
+with $\Phi$ the standard normal cumulative distribution function,
+lands in $(-1, 1)$ by construction; the truncated inverse-Gamma
+$\sigma^2 \given \rho, \mathbf{x}$ is sampled the same way through its
+own cumulative distribution function. After a burn-in of discarded
+sweeps, the retained draws are averaged to give the posterior mean
+$\E[(\rho, \sigma) \given \mathbf{x}]$, the per-dataset reference used
+in Chapter~\ref{ch:importance-sampling}.
+
+% ----------------------------------------------------------------
+\section{The cost of per-dataset inference}
+\label{sec:mcmc-cost}
+
+Within their domains of applicability the algorithms of this chapter
+are reliable: each constructs an ergodic, reversible chain that
+converges to the exact posterior, and the approximation error is
+controlled by running the chain for longer. This reliability carries a
+structural cost. An MCMC chain targets the posterior
+$p(\bm{\theta} \given \mathbf{y})$ for one specific dataset
+$\mathbf{y}$. When a new dataset is observed the entire procedure,
+warm-up, tuning, and the simulation of potentially many thousands of iterations,
+must be repeated, because the chain carries no transferable
+information from one inference problem to the next.
+
+This is of little consequence when inference is required for a handful
+of datasets. It becomes prohibitive when the same model must be fitted
+to hundreds or thousands of distinct datasets: the total cost scales
+linearly in the number of inference problems, with no economy of
+scale. This limitation motivates \emph{amortised} inference: rather
+than solving each problem independently, one invests computational
+effort once to learn a reusable mapping from data to posterior
+summaries, after which inference for any new dataset costs a single
+evaluation of that mapping. Constructing such a mapping with neural
+networks is the subject of Chapter~\ref{ch:amortization}.

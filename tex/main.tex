@@ -1,0 +1,87 @@
+% ============================================================
+%  Honours thesis  --  Kai Marns-Morris
+%  Rao-Blackwellised loss functions for Neural Bayes Estimators
+%
+%  Build:  pdflatex main  ->  bibtex main  ->  pdflatex main x2
+%  (or just: latexmk -pdf main.tex)
+% ============================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+\input{preamble}
+
+% ---- Thesis metadata (edit these) ------------------------------
+\newcommand{\thesistitle}{Variance Reduction for Training Neural Bayes Estimators}
+\newcommand{\thesisauthor}{Kai Marns-Morris}
+\newcommand{\thesissupervisors}{Dr Michael Bertolacci \\ Associate Professor Edward Cripps}
+\newcommand{\thesisdegree}{Bachelor of Philosophy (Honours)}
+\newcommand{\thesisyear}{2026}
+
+\begin{document}
+
+% ================= FRONT MATTER =================
+\pagenumbering{roman}
+
+% ---- Title page ----
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+  \IfFileExists{uwa.jpeg}
+    {\includegraphics[width=0.22\textwidth]{uwa.jpeg}\par\vspace{1.5cm}}{}
+  {\Large\bfseries \thesistitle\par}
+  \vspace{2.5cm}
+  {\large \thesisauthor\par}
+  \vspace{2.5cm}
+  {\itshape Supervisors:\par}
+  {\thesissupervisors\par}
+  \vfill
+  {\normalsize
+   This thesis is presented for the degree of\\
+   \thesisdegree\ of\\
+   The University of Western Australia.\par}
+  \vspace{0.4cm}
+  {\normalsize June 2026\par}
+\end{titlepage}
+
+% ---- Abstract ----
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\input{chapters/00-abstract}
+
+% ---- Acknowledgements ----
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\input{chapters/00-acknowledgements}
+
+% ---- Contents ----
+\tableofcontents
+
+% ---- List of Figures / Tables ----
+% addcontentsline must precede each list so the TOC records the page the
+% list begins on (the lists span more than one page).
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+
+% ================= MAIN MATTER =================
+\cleardoublepage
+\pagenumbering{arabic}
+
+\include{chapters/01-introduction}
+\include{chapters/02-mcmc}
+\include{chapters/03-amortization}
+\include{chapters/04-rao-blackwellisation}
+\include{chapters/05-importance-sampling}
+\include{chapters/06-conclusion}
+
+% ================= BACK MATTER =================
+\appendix
+\include{chapters/A-appendix}
+
+\bibliography{references}
+
+\end{document}

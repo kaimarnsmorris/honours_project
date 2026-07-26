@@ -1,0 +1,346 @@
+% ================================================================
+%  APPENDICES
+%  Status: DRAFT. Appendix B populated from sweeps2/ (tau-uniform
+%  sweep) + floors_and_tables.py (Gibbs floors).
+% ================================================================
+
+\chapter{Derivations}
+\label{app:derivations}
+
+% ----------------------------------------------------------------
+\section{Detailed balance for Metropolis--Hastings}
+\label{app:mh-detailed-balance}
+
+This appendix verifies the claim of Section~\ref{sec:metropolis-hastings}
+that the Metropolis--Hastings chain satisfies detailed balance with
+respect to the posterior $\pi(\bm{\theta}) = p(\bm{\theta} \given
+\mathbf{y})$. The transition kernel has an accepted-move component and
+a rejected-move component,
+%
+\begin{equation}
+  T(\bm{\theta}' \given \bm{\theta})
+  = q(\bm{\theta}' \given \bm{\theta})\,
+    \alpha(\bm{\theta}, \bm{\theta}')
+  + \delta(\bm{\theta}' - \bm{\theta})\,r(\bm{\theta}),
+\end{equation}
+%
+where $\delta$ is the Dirac delta and
+$r(\bm{\theta}) = \int [1 - \alpha(\bm{\theta},
+\bm{\theta}'')]\,q(\bm{\theta}'' \given \bm{\theta})
+\dd\bm{\theta}''$ is the total rejection probability. For
+$\bm{\theta}' = \bm{\theta}$ detailed balance holds trivially, so take
+$\bm{\theta}' \neq \bm{\theta}$, where the delta term vanishes.
+Substituting the acceptance probability~\eqref{eq:mh-acceptance},
+%
+\begin{align}
+  T(\bm{\theta}' \given \bm{\theta})\,\pi(\bm{\theta})
+  &= q(\bm{\theta}' \given \bm{\theta})\,
+     \pi(\bm{\theta})\,
+     \min\!\left(1,\;
+     \frac{\pi(\bm{\theta}')\,q(\bm{\theta} \given \bm{\theta}')}
+          {\pi(\bm{\theta})\,q(\bm{\theta}' \given \bm{\theta})}
+     \right)
+     \notag \\[2pt]
+  &= \min\!\Big(
+     q(\bm{\theta}' \given \bm{\theta})\,\pi(\bm{\theta}),\;
+     q(\bm{\theta} \given \bm{\theta}')\,\pi(\bm{\theta}')
+     \Big)
+     \notag \\[2pt]
+  &= q(\bm{\theta} \given \bm{\theta}')\,\pi(\bm{\theta}')\,
+     \min\!\left(
+     \frac{\pi(\bm{\theta})\,q(\bm{\theta}' \given \bm{\theta})}
+          {\pi(\bm{\theta}')\,q(\bm{\theta} \given \bm{\theta}')},\;
+     1\right)
+     \notag \\[2pt]
+  &= T(\bm{\theta} \given \bm{\theta}')\,\pi(\bm{\theta}'),
+\end{align}
+%
+where the second equality moves the positive factor
+$q(\bm{\theta}' \given \bm{\theta})\,\pi(\bm{\theta})$ inside the
+minimum and the third moves the positive factor
+$q(\bm{\theta} \given \bm{\theta}')\,\pi(\bm{\theta}')$ back out. The
+second line is symmetric under exchange of $\bm{\theta}$ and
+$\bm{\theta}'$, which is what the third line exploits. Detailed
+balance holds, so $\pi$ is the stationary distribution of the chain.
+
+% ----------------------------------------------------------------
+\section{The optimal importance sampling proposal}
+\label{app:is-optimal-proposal}
+
+This appendix proves the claim of Section~\ref{sec:is-basics} that, among
+all proposals $q$, the variance of the importance sampling estimator
+$\hat{L}_{\mathrm{IS}}
+= \frac{1}{N}\sum_{i} w(\bm{\theta}_i)\,f(\bm{\theta}_i)$, with weight
+$w(\bm{\theta}) = p(\bm{\theta})/q(\bm{\theta})$, is minimised by
+%
+\begin{equation}
+  q^*(\bm{\theta}) \propto |f(\bm{\theta})|\, p(\bm{\theta}).
+  \label{eq:app-is-optimal}
+\end{equation}
+
+\begin{proof}
+Since $\hat{L}_{\mathrm{IS}}$ is unbiased for every $q$, minimising its
+variance is equivalent to minimising the second moment of a single term,
+\begin{equation}
+  \E_q\!\left[\left(\frac{f(\bm{\theta}) p(\bm{\theta})}{q(\bm{\theta})}\right)^2\right]
+  = \int \frac{f(\bm{\theta})^2 p(\bm{\theta})^2}{q(\bm{\theta})}\, \dd\bm{\theta}.
+\end{equation}
+By the Cauchy--Schwarz inequality, for any density $q$,
+\begin{equation}
+  \int \frac{f^2 p^2}{q}\,\dd\bm{\theta}
+  = \left(\int \frac{f^2 p^2}{q}\,\dd\bm{\theta}\right)\!\!\left(\int q\,\dd\bm{\theta}\right)
+  \geq \left(\int |f|\, p\, \dd\bm{\theta}\right)^2,
+\end{equation}
+with equality if and only if $f^2 p^2 / q \propto q$, that is,
+\begin{equation}
+  q^*(\bm{\theta}) \propto |f(\bm{\theta})|\, p(\bm{\theta}).
+\end{equation}
+The lower bound $\left(\int |f| p\, \dd\bm{\theta}\right)^2$ is independent of $q$,
+so $q^*$ attains it and is therefore optimal. When $f \geq 0$ the resulting
+weighted integrand $w(\bm{\theta}) f(\bm{\theta})$ is constant, and the variance is zero.
+\end{proof}
+
+% ================================================================
+\chapter{Experimental details}
+\label{app:experimental}
+
+This appendix records the configuration and per-cell results of the
+Bayesian linear regression experiment of
+Chapter~\ref{ch:rao-blackwell}.
+
+% ----------------------------------------------------------------
+\section{Configuration and protocol}
+\label{app:config}
+
+The model is the hierarchical linear regression of
+equation~\eqref{eq:lr-model}, with prior scale $\sigma_0 = 5$ and
+noise-precision prior $\tau \sim \Uniform(0.01, 1)$, placing the noise
+standard deviation in $\sigma \in (1, 10)$. The estimator is a
+multilayer perceptron of depth $3$ and hidden width $128$ with ReLU
+activations and a softplus output on the $\sigma$-head, trained with
+Adam at learning rate $10^{-3}$.
+
+The grid sweeps parameter dimension $p \in \{2, 5, 10, 20, 30\}$ and
+minibatch size $B \in \{4, 16, 64, 256\}$ at sample size $n = 50$, with
+a single design matrix fixed per dimension (a second, independent
+realisation is examined in Appendix~\ref{app:second-design}). Each cell
+is trained for $200$ epochs over ten seeds, the Monte Carlo and
+Rao-Blackwellised estimators sharing their initialisation and their
+simulated batches.
+Each Bayes-optimal floor is computed by the Gibbs sampler of
+Section~\ref{sec:bayes-floor} on a held-out test set of $1024$
+problems; its variance-based and squared-error estimators agree at
+every dimension (Table~\ref{tab:floors}).
+
+% ----------------------------------------------------------------
+\section{Main grid results}
+\label{app:main-grid}
+
+Table~\ref{tab:main-grid} reports, for every $(p, B)$ cell, the final
+test loss of each estimator (the mean of the last ten epochs, averaged
+over ten seeds), the Bayes floor $L^{*}$, the raw ratio
+$\mathcal{L}_{\MC}/\mathcal{L}_{\RB}$, and the excess-over-floor ratio
+$(\mathcal{L}_{\MC}-L^{*})/(\mathcal{L}_{\RB}-L^{*})$. The
+Rao-Blackwellised estimator attains the lower loss in all twenty cells.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Main grid: final test loss of the Monte Carlo (MC) and
+  Rao-Blackwellised (RB) estimators, the Bayes floor $L^{*}$, and the
+  raw and excess-over-floor ratios, for each $(p, B)$ cell at $n = 50$.}
+  \label{tab:main-grid}
+  \begin{tabular}{rr rrr rr}
+    \toprule
+    $p$ & $B$ & $\mathcal{L}_{\MC}$ & $\mathcal{L}_{\RB}$
+        & $L^{*}$ & ratio & excess ratio \\
+    \midrule
+    2 & 4   & 0.1080 & 0.0921 & 0.0708 & 1.172 & 1.74 \\
+    2 & 16  & 0.1033 & 0.0906 & 0.0708 & 1.140 & 1.64 \\
+    2 & 64  & 0.0979 & 0.0868 & 0.0708 & 1.129 & 1.70 \\
+    2 & 256 & 0.0932 & 0.0864 & 0.0708 & 1.079 & 1.43 \\
+    \midrule
+    5 & 4   & 0.1549 & 0.1234 & 0.0964 & 1.255 & 2.16 \\
+    5 & 16  & 0.1526 & 0.1190 & 0.0964 & 1.283 & 2.49 \\
+    5 & 64  & 0.1410 & 0.1158 & 0.0964 & 1.218 & 2.30 \\
+    5 & 256 & 0.1312 & 0.1225 & 0.0964 & 1.071 & 1.33 \\
+    \midrule
+    10 & 4   & 0.2209 & 0.1701 & 0.1102 & 1.299 & 1.85 \\
+    10 & 16  & 0.1944 & 0.1484 & 0.1102 & 1.310 & 2.20 \\
+    10 & 64  & 0.1700 & 0.1448 & 0.1102 & 1.174 & 1.73 \\
+    10 & 256 & 0.1638 & 0.1622 & 0.1102 & 1.010 & 1.03 \\
+    \midrule
+    20 & 4   & 0.3766 & 0.2683 & 0.1263 & 1.404 & 1.76 \\
+    20 & 16  & 0.2759 & 0.1983 & 0.1263 & 1.392 & 2.08 \\
+    20 & 64  & 0.2104 & 0.1802 & 0.1263 & 1.168 & 1.56 \\
+    20 & 256 & 0.2407 & 0.2328 & 0.1263 & 1.034 & 1.07 \\
+    \midrule
+    30 & 4   & 0.6366 & 0.5135 & 0.2188 & 1.240 & 1.42 \\
+    30 & 16  & 0.4524 & 0.3362 & 0.2188 & 1.346 & 1.99 \\
+    30 & 64  & 0.3806 & 0.3354 & 0.2188 & 1.135 & 1.39 \\
+    30 & 256 & 0.3681 & 0.3569 & 0.2188 & 1.031 & 1.08 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ----------------------------------------------------------------
+\section{Batch-size sweep}
+\label{app:batch-sweep}
+
+Table~\ref{tab:batch-sweep} reports the $p = 20$ cell at batch sizes
+$B \in \{4, 16, 64, 256\}$ (ten seeds each, $200$ epochs). The loss
+is the mean over the last ten epochs; the excess is that loss minus
+the floor $L^{*} = 0.126$.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Batch-size sweep at $p = 20$: final loss and excess over the
+  floor for each estimator.}
+  \label{tab:batch-sweep}
+  \begin{tabular}{r rr rr r}
+    \toprule
+    $B$ & MC loss & RB loss & MC excess & RB excess & excess ratio \\
+    \midrule
+    4   & 0.377 & 0.268 & 0.250 & 0.142 & 1.76 \\
+    16  & 0.276 & 0.198 & 0.150 & 0.072 & 2.08 \\
+    64  & 0.210 & 0.180 & 0.084 & 0.054 & 1.56 \\
+    256 & 0.241 & 0.233 & 0.114 & 0.107 & 1.07 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The Rao-Blackwellised estimator at batch $4$ (excess $0.142$) matches
+the Monte Carlo estimator at batch $16$ (excess $0.150$): its variance
+reduction is worth a fourfold increase in batch size. At every batch
+size its excess over the floor is the smaller of the two, and only at
+$B = 256$ (where both estimators have nearly exhausted the Monte
+Carlo noise) do the two nearly coincide.
+
+% ----------------------------------------------------------------
+\section{Bayes-optimal floors}
+\label{app:floors}
+
+Table~\ref{tab:floors} reports the Bayes floor for each dimension at
+$n = 50$, together with the two independent estimators of it: the
+average within-chain posterior variance and the mean squared error of
+the posterior-mean estimate (Section~\ref{sec:bayes-floor}). The two
+agree to within sampling error at every dimension, validating the Gibbs
+sampler.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Bayes-optimal floors by dimension $p$ (at $n = 50$), with
+  the squared-error and variance-based estimators.}
+  \label{tab:floors}
+  \begin{tabular}{r rr}
+    \toprule
+    $p$ & $L^{*}$ (MSE) & $L^{*}$ (variance) \\
+    \midrule
+    2  & 0.0708 & 0.0774 \\
+    5  & 0.0964 & 0.0976 \\
+    10 & 0.1102 & 0.1131 \\
+    20 & 0.1263 & 0.1276 \\
+    30 & 0.2188 & 0.2165 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ----------------------------------------------------------------
+\section{Second design matrix}
+\label{app:second-design}
+
+The main-text results fix a single design matrix $X$ per dimension. To
+confirm that the Rao-Blackwellisation advantage is a property of the
+estimator and not of one particular design, the entire sweep was
+repeated on a second, independent design-matrix realisation $X^{(2)}$
+(a different random seed for $X$; identical prior, grid, ten training
+seeds, and $200$ epochs). Its Bayes floors are recomputed by the same
+Gibbs sampler on $X^{(2)}$ and reported in the $L^{*}$ column of
+Table~\ref{tab:main-grid-X2}.
+
+The pattern of the main text reappears (Figure~\ref{fig:curves-X2}):
+the Rao-Blackwellised estimator attains the lower loss in eighteen of
+the twenty cells, by margins that grow as the batch size shrinks. The
+two exceptions are both at the largest batch $B = 256$, where the two
+estimators have all but exhausted the Monte Carlo noise and coincide to
+within $2\%$ --- the same vanishing of the Rao-Blackwell advantage with
+batch size seen for the first design. The advantage is therefore
+robust to the design wherever it is not already exhausted by averaging.
+
+\begin{figure}[htbp]
+  \centering
+  \IfFileExists{figures/rb_tau_curves_X2.png}
+    {\includegraphics[width=\textwidth]{rb_tau_curves_X2}}
+    {\fbox{\parbox[c][6cm][c]{\textwidth}{\centering\itshape
+      Figure pending: second design-matrix curves grid
+      (re-export \texttt{rb\_tau\_curves\_X2} via
+      \texttt{replot\_curves\_floor.py}).}}}
+  \caption{As Figure~\ref{fig:curves}, for the second design-matrix
+  realisation $X^{(2)}$: training curves across parameter dimension $p$
+  (rows) and batch size (columns); Monte Carlo (blue) and
+  Rao-Blackwellised (orange), with the Bayes floor $L^{*}(p)$ dashed.}
+  \label{fig:curves-X2}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Second design matrix $X^{(2)}$: final test loss of the Monte
+  Carlo (MC) and Rao-Blackwellised (RB) estimators, the Bayes floor
+  $L^{*}$, and the raw and excess-over-floor ratios, for each $(p, B)$
+  cell at $n = 50$.}
+  \label{tab:main-grid-X2}
+  \begin{tabular}{rr rrr rr}
+    \toprule
+    $p$ & $B$ & $\mathcal{L}_{\MC}$ & $\mathcal{L}_{\RB}$
+        & $L^{*}$ & ratio & excess ratio \\
+    \midrule
+    2 & 4   & 0.1041 & 0.0882 & 0.0666 & 1.180 & 1.74 \\
+    2 & 16  & 0.1001 & 0.0861 & 0.0666 & 1.162 & 1.72 \\
+    2 & 64  & 0.0936 & 0.0838 & 0.0666 & 1.117 & 1.57 \\
+    2 & 256 & 0.0889 & 0.0823 & 0.0666 & 1.080 & 1.42 \\
+    \midrule
+    5 & 4   & 0.1508 & 0.1234 & 0.0939 & 1.222 & 1.93 \\
+    5 & 16  & 0.1471 & 0.1187 & 0.0939 & 1.240 & 2.15 \\
+    5 & 64  & 0.1396 & 0.1160 & 0.0939 & 1.204 & 2.07 \\
+    5 & 256 & 0.1271 & 0.1187 & 0.0939 & 1.070 & 1.34 \\
+    \midrule
+    10 & 4   & 0.2002 & 0.1561 & 0.0972 & 1.282 & 1.75 \\
+    10 & 16  & 0.1762 & 0.1360 & 0.0972 & 1.295 & 2.04 \\
+    10 & 64  & 0.1540 & 0.1294 & 0.0972 & 1.189 & 1.76 \\
+    10 & 256 & 0.1524 & 0.1531 & 0.0972 & 0.995 & 0.99 \\
+    \midrule
+    20 & 4   & 0.3888 & 0.2864 & 0.1407 & 1.357 & 1.70 \\
+    20 & 16  & 0.2912 & 0.2156 & 0.1407 & 1.351 & 2.01 \\
+    20 & 64  & 0.2311 & 0.1953 & 0.1407 & 1.183 & 1.66 \\
+    20 & 256 & 0.2538 & 0.2588 & 0.1407 & 0.981 & 0.96 \\
+    \midrule
+    30 & 4   & 0.7288 & 0.5779 & 0.2737 & 1.261 & 1.50 \\
+    30 & 16  & 0.5409 & 0.3974 & 0.2737 & 1.361 & 2.16 \\
+    30 & 64  & 0.4639 & 0.4018 & 0.2737 & 1.155 & 1.49 \\
+    30 & 256 & 0.4435 & 0.4278 & 0.2737 & 1.037 & 1.10 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ----------------------------------------------------------------
+\section{Reproduction}
+\label{app:reproduction}
+
+The experiment code is in \texttt{sweeps2/} of the accompanying
+repository. The training curves of Figure~\ref{fig:curves} and the raw
+per-cell trajectories are produced by
+%
+\begin{quote}
+\texttt{python rb\_vs\_mc\_sweep\_tau.py}
+\end{quote}
+%
+and the Bayes floors and the tables of this appendix by
+\texttt{floors\_and\_tables.py}, which runs a vectorised Gibbs sampler
+for the linear-regression posterior on the same held-out test sets. The
+Bayes-floor line on Figure~\ref{fig:curves} is overlaid by
+\texttt{replot\_curves\_floor.py}, and the samples-seen view of
+Figure~\ref{fig:vs-samples} by \texttt{plot\_curves\_vs\_samples.py};
+both reuse the saved \texttt{.npz} without retraining.

@@ -1,0 +1,104 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\citation{berger1985decision}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Amortisation and Neural Bayes Estimators}{16}{chapter.3}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{loa}{\addvspace {10\p@ }}
+\newlabel{ch:amortization}{{3}{16}{Amortisation and Neural Bayes Estimators}{chapter.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}The Bayes estimator framework}{17}{section.3.1}\protected@file@percent }
+\newlabel{sec:bayes-estimator}{{3.1}{17}{The Bayes estimator framework}{section.3.1}{}}
+\newlabel{eq:frequentist-risk}{{3.1}{17}{The Bayes estimator framework}{section.3.1}{}}
+\newlabel{eq:bayes-risk}{{3.1}{17}{The Bayes estimator framework}{equation.3.1.1}{}}
+\newlabel{def:bayes-estimator}{{3.1}{17}{Bayes estimator}{theorem.3.1}{}}
+\newlabel{eq:bayes-estimator}{{3.2}{17}{Bayes estimator}{equation.3.1.2}{}}
+\MT@newlabel{eq:bayes-risk}
+\MT@newlabel{eq:bayes-estimator}
+\newlabel{eq:pointwise}{{3.3}{17}{The Bayes estimator framework}{equation.3.1.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1.1}Loss functions and posterior summaries}{17}{subsection.3.1.1}\protected@file@percent }
+\newlabel{sec:loss-summaries}{{3.1.1}{17}{Loss functions and posterior summaries}{subsection.3.1.1}{}}
+\newlabel{prop:squared-error}{{3.2}{17}{Squared-error loss}{theorem.3.2}{}}
+\newlabel{prop:quantile}{{3.3}{18}{Quantile loss}{theorem.3.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Neural Bayes estimators}{19}{section.3.2}\protected@file@percent }
+\newlabel{sec:nbe}{{3.2}{19}{Neural Bayes estimators}{section.3.2}{}}
+\MT@newlabel{eq:pointwise}
+\@writefile{toc}{\contentsline {paragraph}{A parametric family of estimators.}{19}{section*.11}\protected@file@percent }
+\MT@newlabel{eq:bayes-estimator}
+\newlabel{eq:population-loss}{{3.4}{19}{A parametric family of estimators}{equation.3.2.4}{}}
+\newlabel{eq:gamma-star}{{3.5}{19}{A parametric family of estimators}{equation.3.2.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{A Monte Carlo objective.}{19}{section*.12}\protected@file@percent }
+\MT@newlabel{eq:population-loss}
+\citation{sainsburydale2024nbe}
+\newlabel{eq:empirical-bayes-risk}{{3.6}{20}{A Monte Carlo objective}{equation.3.2.6}{}}
+\MT@newlabel{eq:population-loss}
+\MT@newlabel{eq:empirical-bayes-risk}
+\MT@newlabel{eq:gamma-star}
+\@writefile{toc}{\contentsline {paragraph}{A neural network surrogate.}{20}{section*.13}\protected@file@percent }
+\MT@newlabel{eq:empirical-bayes-risk}
+\MT@newlabel{eq:empirical-bayes-risk}
+\MT@newlabel{eq:empirical-bayes-risk}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2.1}Training by stochastic gradient descent}{20}{subsection.3.2.1}\protected@file@percent }
+\newlabel{sec:training-as-mc}{{3.2.1}{20}{Training by stochastic gradient descent}{subsection.3.2.1}{}}
+\MT@newlabel{eq:empirical-bayes-risk}
+\newlabel{eq:minibatch-gradient}{{3.2.1}{20}{Training by stochastic gradient descent}{subsection.3.2.1}{}}
+\citation{zaheer2017deepsets}
+\MT@newlabel{eq:population-loss}
+\newlabel{eq:minibatch-unbiased}{{3.2.1}{21}{Training by stochastic gradient descent}{subsection.3.2.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Neural architectures}{21}{section.3.3}\protected@file@percent }
+\newlabel{sec:architectures}{{3.3}{21}{Neural architectures}{section.3.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}The DeepSets architecture}{21}{subsection.3.3.1}\protected@file@percent }
+\newlabel{sec:deepsets}{{3.3.1}{21}{The DeepSets architecture}{subsection.3.3.1}{}}
+\newlabel{eq:deepsets}{{3.7}{21}{The DeepSets architecture}{equation.3.3.7}{}}
+\citation{cho2014gru}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces The DeepSets architecture for permutation-invariant estimation. Each observation $y_i$ is mapped by the shared network $\psi $ to an embedding $s_i$; the embeddings are summed into the permutation-invariant aggregate $S = \DOTSB \sum@ \slimits@ _i \psi (y_i)$, which the second network $\phi $ maps to the estimate $\hat  {\bm  {\theta }}(\mathbf  {y})$.}}{22}{figure.caption.14}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:deepsets}{{3.1}{22}{The DeepSets architecture for permutation-invariant estimation. Each observation $y_i$ is mapped by the shared network $\psi $ to an embedding $s_i$; the embeddings are summed into the permutation-invariant aggregate $S = \sum _i \psi (y_i)$, which the second network $\phi $ maps to the estimate $\hat {\bm {\theta }}(\mathbf {y})$}{figure.caption.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}Recurrent architectures for sequential data}{22}{subsection.3.3.2}\protected@file@percent }
+\newlabel{sec:recurrent-arch}{{3.3.2}{22}{Recurrent architectures for sequential data}{subsection.3.3.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces A recurrent architecture for sequential data, unrolled over the sequence. At step $t$ the shared cell $\psi $ combines the observation $y_t$ with the previous hidden state $\mathbf  {h}_{t-1}$ to produce $\mathbf  {h}_t$; the final map $\phi $ turns the terminal hidden state $\mathbf  {h}_n$ into the estimate $\hat  {\bm  {\theta }}(\mathbf  {y})$.}}{23}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:recurrent}{{3.2}{23}{A recurrent architecture for sequential data, unrolled over the sequence. At step $t$ the shared cell $\psi $ combines the observation $y_t$ with the previous hidden state $\mathbf {h}_{t-1}$ to produce $\mathbf {h}_t$; the final map $\phi $ turns the terminal hidden state $\mathbf {h}_n$ into the estimate $\hat {\bm {\theta }}(\mathbf {y})$}{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.3}Feed-forward architectures for fixed-dimension data}{23}{subsection.3.3.3}\protected@file@percent }
+\newlabel{sec:mlp-arch}{{3.3.3}{23}{Feed-forward architectures for fixed-dimension data}{subsection.3.3.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Example 1: estimating normal parameters}{23}{section.3.4}\protected@file@percent }
+\newlabel{sec:normal-example}{{3.4}{23}{Example 1: estimating normal parameters}{section.3.4}{}}
+\MT@newlabel{eq:normal-logpost}
+\MT@newlabel{eq:deepsets}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces Estimated against true parameter values for the normal model, across $256$ test datasets, for Metropolis--Hastings and the neural Bayes estimator. Both methods track the true parameters closely; the dashed line marks the hypothetical perfect estimation.}}{24}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:normal-model}{{3.3}{24}{Estimated against true parameter values for the normal model, across $256$ test datasets, for Metropolis--Hastings and the neural Bayes estimator. Both methods track the true parameters closely; the dashed line marks the hypothetical perfect estimation}{figure.caption.16}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Normal model: accuracy (mean squared error over the $256$ test datasets) and per-dataset cost of the Metropolis--Hastings reference and the neural Bayes estimator. The two agree closely in accuracy, but the amortised network is faster per dataset by some three orders of magnitude (single-threaded CPU timing; $5{,}000$-step chains for Metropolis--Hastings).}}{24}{table.caption.17}\protected@file@percent }
+\newlabel{tab:normal-model}{{3.1}{24}{Normal model: accuracy (mean squared error over the $256$ test datasets) and per-dataset cost of the Metropolis--Hastings reference and the neural Bayes estimator. The two agree closely in accuracy, but the amortised network is faster per dataset by some three orders of magnitude (single-threaded CPU timing; $5{,}000$-step chains for Metropolis--Hastings)}{table.caption.17}{}}
+\@setckpt{chapters/03-amortization}{
+\setcounter{page}{25}
+\setcounter{equation}{7}
+\setcounter{enumi}{3}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{0}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{3}
+\setcounter{section}{4}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{3}
+\setcounter{table}{1}
+\setcounter{parentequation}{0}
+\setcounter{caption@flags}{2}
+\setcounter{continuedfloat}{0}
+\setcounter{subfigure}{0}
+\setcounter{subtable}{0}
+\setcounter{float@type}{4}
+\setcounter{AlgoLine}{0}
+\setcounter{algocfline}{2}
+\setcounter{algocfproc}{2}
+\setcounter{algocf}{2}
+\setcounter{NAT@ctr}{0}
+\setcounter{section@level}{1}
+\setcounter{Item}{8}
+\setcounter{Hfootnote}{0}
+\setcounter{bookmark@seq@number}{35}
+\setcounter{theorem}{3}
+}

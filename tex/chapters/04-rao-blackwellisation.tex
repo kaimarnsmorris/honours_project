@@ -1,0 +1,1016 @@
+% ================================================================
+%  CHAPTER 4 -- RAO-BLACKWELLISED LOSS FUNCTIONS  (CORE CHAPTER)
+%  Experiment: tau-uniform sweep in final/sweeps2/ (+ floors_and_tables.py).
+% ================================================================
+
+\chapter{Rao-Blackwellised Loss Functions}
+\label{ch:rao-blackwell}
+
+Chapter~\ref{ch:amortization} established that training a neural Bayes
+estimator is Monte Carlo integration of the Bayes risk, so the
+training gradient is itself a Monte Carlo estimator with a variance.
+This chapter reduces that variance by \emph{Rao-Blackwellisation}.
+Rather than estimating the Bayes risk by sampling the whole parameter
+vector, we integrate a conjugate block of it out of the loss
+analytically and Monte Carlo approximate only what remains. Under
+squared-error loss the construction is very simple: it
+replaces the sampled target by its conditional posterior mean, and
+the resulting training gradient is provably no noisier than the
+standard one, for any model and any architecture. For the special case when the network is linear,
+the guarantee strengthens further, from the gradient to the fitted
+weights themselves.
+
+The chapter has three sections.
+Section~\ref{sec:rb-loss} develops the theory, Rao-Blackwellising the
+loss function in general and then specialising to squared-error loss,
+where the construction reduces to substituting a conditional posterior
+mean and the training gradient it produces is provably no noisier than
+the standard one.
+Section~\ref{sec:rb-application} applies the method to Bayesian linear
+regression, the simplest model with a non-trivial conjugate block.
+Measured against a Gibbs-sampled Bayes-optimal reference, the
+Rao-Blackwellised estimator attains a lower error than the standard
+Monte Carlo estimator in every cell of a grid over parameter dimension
+and batch size, closing about half of the gap to the Bayes-optimal
+floor at the baseline, and matching the standard estimator at a quarter
+of the minibatch size.
+Section~\ref{sec:lr-discussion} discusses the result. This is the
+unconditional improvement the theory predicts, and the central
+empirical result of the thesis.
+
+
+% ################################################################
+% PART I -- THEORY
+% ################################################################
+
+% ----------------------------------------------------------------
+\section{Rao-Blackwellising the loss function}
+\label{sec:rb-loss}
+
+% ----------------------------------------------------------------
+\subsection{The Rao-Blackwell theorem}
+\label{sec:rb-theorem}
+
+The Rao-Blackwell theorem states that an estimator can always be
+improved, under convex loss, by conditioning it on a sufficient
+statistic~\citep{lehmann1998point}.
+
+\begin{theorem}[Rao-Blackwell]
+\label{thm:rao-blackwell}
+Let $\hat{\bm{\theta}}(\mathbf{y})$ be an estimator of $\bm{\theta}$
+under a loss $L(\bm{\theta}, \cdot)$ convex in its second argument and
+with $\E_{\mathbf{y} \given \bm{\theta}}\big[L(\bm{\theta},
+\hat{\bm{\theta}}(\mathbf{y}))\big] < \infty$, and let
+$T = T(\mathbf{y})$ be a statistic sufficient for $\bm{\theta}$.
+Define the conditioned estimator
+%
+\begin{equation}
+  \hat{\bm{\theta}}_T(\mathbf{y})
+  = \E\big[\hat{\bm{\theta}}(\mathbf{y}) \given T\big].
+  \label{eq:rb-conditioned}
+\end{equation}
+%
+Then $\hat{\bm{\theta}}_T$ is an estimator --- it does not depend on
+the unknown $\bm{\theta}$ --- and its risk is no greater,
+%
+\begin{equation}
+  R(\bm{\theta}, \hat{\bm{\theta}}_T)
+  \;\le\;
+  R(\bm{\theta}, \hat{\bm{\theta}})
+  \qquad \text{for every } \bm{\theta}.
+  \label{eq:rb-risk-inequality}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Because $T$ is sufficient for $\bm{\theta}$, the conditional
+distribution of $\mathbf{y}$ given $T$ does not depend on
+$\bm{\theta}$; hence neither does the conditional expectation
+defining $\hat{\bm{\theta}}_T$ in~\eqref{eq:rb-conditioned}, which is
+therefore a genuine estimator rather than a function of the parameter
+being estimated. Fix $\bm{\theta}$. Since $L(\bm{\theta}, \cdot)$ is
+convex, the conditional form of Jensen's inequality gives, pointwise
+in $T$,
+%
+\begin{equation}
+  L\big(\bm{\theta}, \hat{\bm{\theta}}_T(\mathbf{y})\big)
+  = L\big(\bm{\theta}, \E[\hat{\bm{\theta}}(\mathbf{y}) \given T]\big)
+  \;\le\;
+  \E\big[L(\bm{\theta}, \hat{\bm{\theta}}(\mathbf{y})) \given T\big].
+\end{equation}
+%
+Take the expectation over $\mathbf{y} \given \bm{\theta}$ on both
+sides; the tower property
+$\E\big[\E[\,\cdot \given T]\big] = \E[\,\cdot\,]$ collapses the
+right-hand side, giving
+%
+\begin{equation}
+  R(\bm{\theta}, \hat{\bm{\theta}}_T)
+  = \E\big[L(\bm{\theta}, \hat{\bm{\theta}}_T)\big]
+  \le \E\big[\E[L(\bm{\theta}, \hat{\bm{\theta}}) \given T]\big]
+  = \E\big[L(\bm{\theta}, \hat{\bm{\theta}})\big]
+  = R(\bm{\theta}, \hat{\bm{\theta}}),
+\end{equation}
+%
+which is~\eqref{eq:rb-risk-inequality}. When $L(\bm{\theta}, \cdot)$
+is strictly convex the inequality is strict unless
+$\hat{\bm{\theta}}(\mathbf{y})$ is already a function of $T$ alone, in
+which case conditioning leaves it unchanged.
+\end{proof}
+
+The applications in this chapter use the theorem through the variance
+it controls, and the mechanism is the \emph{law of total variance}: for
+any random vector $Z$ and any conditioning variable $T$,
+%
+\begin{equation}
+  \Var(Z)
+  = \E\big[\Var(Z \given T)\big]
+  + \Var\big(\E[Z \given T]\big),
+  \label{eq:total-variance}
+\end{equation}
+%
+and since $\E[\Var(Z \given T)] \succeq 0$ in the positive
+semi-definite order,
+%
+\begin{equation}
+  \Var\big(\E[Z \given T]\big) \;\preceq\; \Var(Z).
+  \label{eq:rb-inequality}
+\end{equation}
+%
+Replacing a random quantity by its conditional expectation cannot
+increase its variance, for any conditioning variable, not
+only a sufficient statistic, and strictly decreases it unless the
+quantity is already a function of $T$. Every variance reduction below
+is an instance of~\eqref{eq:rb-inequality}: in
+Section~\ref{sec:gradients}, with $Z$ a Monte Carlo training gradient
+and $T = (\mathbf{y}, \bm{\theta}_1)$; and in
+Section~\ref{sec:linear-network}, with $Z$ the fitted weights.
+
+
+% ----------------------------------------------------------------
+\subsection{Rao-Blackwellising the Bayes risk}
+\label{sec:rb-bayes-risk}
+
+Let $\hat{\bm{\theta}}_{\bm{\gamma}}$ be a neural Bayes estimator with weights
+$\bm{\gamma}$. By splitting the parameter vector into two blocks $\bm{\theta} =
+(\bm{\theta}_1, \bm{\theta}_2)$, the Bayes risk can be written as:
+%
+\begin{equation}
+  \begin{split}
+    r(\bm{\gamma})
+    &= \E_{\bm{\theta}, \mathbf{y}}
+       \big[L(\bm{\theta},
+       \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))\big] \\
+    &= \int_{\Theta_1}\!\int_{\mathcal{Y}}\!\int_{\Theta_2}
+       L(\bm{\theta},
+       \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))\,
+       p(\bm{\theta}_1, \mathbf{y}, \bm{\theta}_2)
+       \dd\bm{\theta}_2 \dd\mathbf{y} \dd\bm{\theta}_1.
+  \end{split}
+  \label{eq:risk-integral}
+\end{equation}
+%
+Factorising the joint density by the chain rule,
+$p(\bm{\theta}_1, \mathbf{y}, \bm{\theta}_2) =
+p(\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1)\,
+p(\mathbf{y} \given \bm{\theta}_1)\,p(\bm{\theta}_1)$, the
+risk becomes a nested expectation,
+%
+\begin{equation}
+  r(\bm{\gamma})
+  = \E_{\bm{\theta}_1}\!\Big[
+    \E_{\mathbf{y} \given \bm{\theta}_1}\!\big[
+    \underbrace{\E_{\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1}
+    [L(\bm{\theta}, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))]}
+    _{=:\; f(\bm{\theta}_1, \mathbf{y})}\big]\Big].
+  \label{eq:nested-risk}
+\end{equation}
+%
+The inner expectation $f(\bm{\theta}_1, \mathbf{y})$ integrates
+$\bm{\theta}_2$ out against its conditional posterior
+$p(\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1)$. The premise of
+this chapter is that this inner integral is tractable, so that $f$ can
+be evaluated in closed form, while the outer expectations over
+$\bm{\theta}_1$ and $\mathbf{y}$ cannot, and must be estimated by
+sampling.
+
+The standard NBE training and the Rao-Blackwellised training differ in how much of~\eqref{eq:nested-risk}
+they leave to that sampling. Both draw the same $K$ joint samples from
+the model, each comprising parameters $\bm{\theta}_1^{(k)},
+\bm{\theta}_2^{(k)}$ and the data $\mathbf{y}^{(k)}$ they generate.
+The standard \emph{Monte Carlo} objective estimates the whole nested
+expectation at once, feeding each sampled $\bm{\theta}_2^{(k)}$ into
+the loss; the \emph{Rao-Blackwellised} objective uses
+$\bm{\theta}_2^{(k)}$ only to simulate the data $\mathbf{y}^{(k)}$,
+then discards it and evaluates the inner expectation $f$
+analytically,
+%
+\begin{align}
+  \hat{r}_{\MC}(\bm{\gamma})
+  &= \frac{1}{K}\sum_{k=1}^{K}
+     L\big(\bm{\theta}^{(k)},
+     \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}^{(k)})\big),
+  \label{eq:rhat-mc} \\
+  \hat{r}_{\RB}(\bm{\gamma})
+  &= \frac{1}{K}\sum_{k=1}^{K}
+     f\big(\bm{\theta}_1^{(k)}, \mathbf{y}^{(k)}\big),
+  \label{eq:rhat-rb}
+\end{align}
+%
+where $f(\bm{\theta}_1, \mathbf{y}) =
+\E_{\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1}
+[L(\bm{\theta}, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))]$ is the
+inner integral of~\eqref{eq:nested-risk}, now evaluated in closed
+form. The standard objective~\eqref{eq:rhat-mc} is exactly the
+empirical Bayes risk of Chapter~\ref{ch:amortization}; the
+Rao-Blackwellised
+objective~\eqref{eq:rhat-rb} replaces each sampled loss term by its
+conditional expectation given $(\bm{\theta}_1^{(k)},\mathbf{y}^{(k)})$, the draw $\bm{\theta}_2^{(k)}$ having served
+only to generate the data. Both are unbiased estimators of the same
+Bayes risk: taking the expectation of
+either~\eqref{eq:rhat-mc} or~\eqref{eq:rhat-rb}
+recovers~\eqref{eq:nested-risk}. The two objectives therefore share
+the same minimiser, and differ only in variance.
+
+When attempting to train the estimator by stochastic gradient descent, the variance of
+the gradients we are using to train the estimator becomes important. Recall that the population gradient is the gradient of the Bayes risk, and so will be unchanged,
+%
+\begin{equation}
+  g(\bm{\gamma}) = \nabla_{\bm{\gamma}} r(\bm{\gamma})
+  = \nabla_{\bm{\gamma}} \E_{\bm{\theta}, \mathbf{y}}
+    \big[ L(\bm{\theta}, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})) \big].
+\end{equation}
+%
+The empirical training gradients $\hat{g}_{\MC}(\bm{\gamma})= \nabla_{\bm{\gamma}} \hat{r}_{\MC}(\bm{\gamma})$ and $\hat{g}_{\RB}(\bm{\gamma})= \nabla_{\bm{\gamma}} \hat{r}_{\RB}(\bm{\gamma})$, however, will differ between the two schemes, since they
+are defined by the Monte Carlo estimates of the derivative of the Bayes risk with respect
+to the neural network weights $\bm{\gamma}$.
+
+% ----------------------------------------------------------------
+\subsection{The squared-error case}
+\label{sec:rb-mse}
+
+Under squared-error loss $L(\bm{\theta}, \hat{\bm{\theta}}) = \|\bm{\theta} - \hat{\bm{\theta}}\|^2$, 
+we can go further, and show the inner integral $f(\mathbf{y}, \bm{\theta}_1)$ always simplifies, regardless of the model.
+If we write the estimator in block form
+$\hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}) =
+(\hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}),
+\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}))$ to match the partition of
+$\bm{\theta}$, we can then separate the loss into components where only the
+second term depends on $\bm{\theta}_2$.
+%
+\begin{align}
+  f(\mathbf{y}, \bm{\theta}_1)
+  &= \E_{\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1}
+     \big[\|\hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}) - \bm{\theta} \|^2\big]
+   \notag \\[2pt]
+   &= \E_{\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1}
+     \big[\ \|\hat{\bm{\theta}}_{\bm{\gamma}}^{1} - \bm{\theta}_1\|^2 + \|\hat{\bm{\theta}}_{\bm{\gamma}}^{2} - \bm{\theta}_2\|^2\big]
+   \notag \\[2pt]
+  &= \|\hat{\bm{\theta}}_{\bm{\gamma}}^{1} - \bm{\theta}_1\|^2
+   + \E_{\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1}
+     \big[\|\hat{\bm{\theta}}_{\bm{\gamma}}^{2} - \bm{\theta}_2\|^2\big]
+   \notag \\[2pt]
+  &= \|\hat{\bm{\theta}}_{\bm{\gamma}}^{1} - \bm{\theta}_1\|^2
+   + \big\|\hat{\bm{\theta}}_{\bm{\gamma}}^{2} - \E[\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1]\big\|^2
+   + \Tr\!\big(\Var(\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1)
+     \big),
+  \label{eq:rb-mse}
+\end{align}
+%
+where the final line applies the identity
+$\E[\|Z - c\|^2] = \|\E[Z] - c\|^2 + \Tr(\Var(Z))$ to the random
+vector $\bm{\theta}_2$ and the constant
+$\hat{\bm{\theta}}_{\bm{\gamma}}^{2}$.
+
+Two features of~\eqref{eq:rb-mse} drive everything that follows.
+First, the sampled target $\bm{\theta}_2$ has been replaced by the
+\emph{conditional posterior mean}
+$\E[\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1]$:
+Rao-Blackwellising a squared-error loss simply substitutes the
+conditional mean for the sampled value. Second, the trace term
+$\Tr(\Var(\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1))$ does not
+depend on the weights $\bm{\gamma}$. It contributes nothing to the
+gradient and need not be computed during training; it shifts the loss
+by a constant but leaves the optimisation unchanged.
+
+In practice, what has been done is that the training pairs $(\mathbf{y}, \bm{\theta})$ have been replaced with pairs $(\mathbf{y}, \bm{\theta}^{\mathrm{RB}})$, where $\bm{\theta}^{\mathrm{RB}}$ has the same posterior mean but less variance than $\bm{\theta}$. Intuitively, this should improve training of the neural network. In the limit, if one had the posterior mean of $\bm{\theta}$ already available, the network could be trained on $(\mathbf{y}, \E[\bm{\theta} \given \mathbf{y}])$ pairs. Of course, in this case, one would generally expect the neural network to be unnecessary except perhaps as a faster surrogate replacing direct analytical calculation of the posterior mean.
+
+% ----------------------------------------------------------------
+\subsection{The training gradients}
+\label{sec:gradients}
+
+Training minimises the objective by stochastic gradient descent
+where each step moves the weights along
+an estimate of the gradient of the objective with respect to
+$\bm{\gamma}$. The objects to compare between the two schemes are
+therefore not the objectives themselves but their gradients, and this
+section derives them.
+
+Both follow from differentiating their respective squared-error loss,
+%
+\begin{align}
+  r_{\MC}(\bm{\gamma})
+  &= \E_{\bm{\theta}}\Big[ \E_{\mathbf{y} \given \bm{\theta}}\big[
+     \|\hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}) - \bm{\theta}_1\|^2
+     + \|\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}) - \bm{\theta}_2\|^2
+     \big]\Big], \\
+  r_{\RB}(\bm{\gamma})
+  &= \E_{\bm{\theta}_1}\Big[ \E_{\mathbf{y} \given \bm{\theta}_1}\big[
+     \|\hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}) - \bm{\theta}_1\|^2
+     + \|\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y})
+       - \E[\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1]\|^2
+     + \Tr\!\big(\Var(\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1)\big)
+     \big]\Big].
+\end{align}
+%
+By differentiating each with respect to the weights $\bm{\gamma}$, we obtain the gradients for the two schemes:
+%
+\begin{align}
+  g_{\MC}(\bm{\gamma})
+  &= 2\,\E_{\bm{\theta}, \mathbf{y}}\big[
+     (\nabla_{\bm{\gamma}} \hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}))^{\!\top}
+     (\hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}) - \bm{\theta}_1) \big]
+   + 2\,\E_{\bm{\theta}, \mathbf{y}}\big[
+     (\nabla_{\bm{\gamma}} \hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}))^{\!\top}
+     (\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}) - \bm{\theta}_2) \big], \\
+  g_{\RB}(\bm{\gamma})
+  &= 2\,\E_{\bm{\theta}_1, \mathbf{y}}\big[
+     (\nabla_{\bm{\gamma}} \hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}))^{\!\top}
+     (\hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}) - \bm{\theta}_1) \big]
+   + 2\,\E_{\bm{\theta}_1, \mathbf{y}}\big[
+     (\nabla_{\bm{\gamma}} \hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}))^{\!\top}
+     (\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y})
+       - \E[\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1]) \big].
+\end{align}
+%
+To show that $g_{\RB}(\bm{\gamma})$ is less noisy than $g_{\MC}(\bm{\gamma})$, we examine the variance of the stochastic components inside the expectations. Specifically, we look at the second term of each gradient:
+%
+\begin{align}
+  G_{\MC}^{(2)} &= 2\,J_{\bm{\gamma}}(\mathbf{y})^{\!\top}(\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}) - \bm{\theta}_2),  \\
+  G_{\RB}^{(2)} &= 2\,J_{\bm{\gamma}}(\mathbf{y})^{\!\top}(\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y})
+     - \E[\bm{\theta}_2 \given \mathbf{y}, \bm{\theta}_1]), \qquad \text{where} \quad J_{\bm{\gamma}}(\mathbf{y}) \equiv \nabla_{\bm{\gamma}} \hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y}).
+\end{align}
+%
+Note here that $G^{(2)}_{\RB}=\E[G_{\MC}^{(2)} \given \mathbf{y}, \bm{\theta}_{1}]$:
+conditional on $(\mathbf{y}, \bm{\theta}_1)$ the estimate
+$\hat{\bm{\theta}}_{\bm{\gamma}}^{2}(\mathbf{y})$ and its Jacobian are fixed, and
+the sampled $\bm{\theta}_2$ enters $G_{\MC}^{(2)}$ linearly, so conditioning
+simply replaces $\bm{\theta}_2$ by its conditional mean. The Rao-Blackwellised
+gradient term is thus the conditional expectation of the Monte Carlo one, and
+by the tower property the two share the same mean,
+$\E[G_{\RB}^{(2)}] = \E[G_{\MC}^{(2)}]$, so the substitution introduces no bias;
+and the law of total variance~\eqref{eq:total-variance} gives a gap that is an
+average of conditional covariances,
+%
+\begin{equation}
+  \Var\big(G_{\MC}^{(2)}\big) - \Var\big(G_{\RB}^{(2)}\big)
+  = \E\big[\Var\big(G_{\MC}^{(2)} \given \mathbf{y}, \bm{\theta}_1\big)\big]
+  \;\succeq\; 0.
+  \label{eq:variance-gap}
+\end{equation}
+%
+This gap concerns only the second term. The first is unaffected:
+\[
+  G^{(1)} = 2\,(\nabla_{\bm{\gamma}} \hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}))^{\!\top}
+  (\hat{\bm{\theta}}_{\bm{\gamma}}^{1}(\mathbf{y}) - \bm{\theta}_1)
+\]
+is already a function of $(\mathbf{y}, \bm{\theta}_1)$, so
+$\E[G^{(1)} \given \mathbf{y}, \bm{\theta}_1] = G^{(1)}$. Combined with
+$G^{(2)}_{\RB} = \E[G^{(2)}_{\MC} \given \mathbf{y}, \bm{\theta}_1]$, the entire
+per-sample gradient is the conditional expectation of the standard one, and
+averaging over the minibatch preserves this, so
+$\hat{g}_{\RB} = \E[\hat{g}_{\MC} \given \mathbf{y}, \bm{\theta}_1]$. The law of
+total variance~\eqref{eq:total-variance} therefore applies to the whole gradient
+vector, not merely its second term:
+%
+\begin{equation}
+  \Var(\hat{g}_{\MC}) - \Var(\hat{g}_{\RB})
+  = \E\big[\Var(\hat{g}_{\MC} \given \mathbf{y}, \bm{\theta}_1)\big]
+  \;\succeq\; 0.
+  \label{eq:full-variance-gap}
+\end{equation}
+%
+This is positive semi-definite. Rao-Blackwellisation can therefore never
+increase the variance of the training gradient, and, since nothing in the
+argument used any property of the network, the guarantee holds for every
+model and every architecture.
+
+To quantify this \emph{variance gap}, we can substitute $G_{\MC}^{(2)}$ into \eqref{eq:variance-gap} and apply the identity $\Var(AZ) = A \Var(Z) A^{\!\top}$ for random vector $Z$ and constant matrix $A$.
+%
+\begin{equation}
+\Var\!\left( G_{\MC}^{(2)} \given \mathbf y,\bm{\theta}_1 \right) = 4\, J_{\bm{\gamma}}^{\!\top} \Var(\bm{\theta}_2\given \mathbf y,\bm{\theta}_1) J_{\bm{\gamma}},
+\label{eq:general-gradient-cov-gap}
+\end{equation}
+%
+This shows the reduction scales with two interpretable quantities. The first is the conditional posterior covariance $\Var(\bm{\theta}_2\given \mathbf y,\bm{\theta}_1)$, which is large exactly when $\bm{\theta}_2$ is weakly identified by the data --- the case where the sampled target is noisiest and stands to gain the most from being replaced. The second is the Jacobian $J_{\bm{\gamma}}$, which is generally largest early in training, when the network weights are far from optimal. Taken together, these suggest that the variance reduction is greatest precisely when the optimiser most needs a clean signal: early in training, and on weakly identified parameters.
+
+
+
+
+
+% ----------------------------------------------------------------
+\subsection{The linear network case}
+\label{sec:linear-network}
+
+Rao-Blackwellisation reduces the variance of the training gradient;
+it is natural to ask what this implies for the estimator that
+training produces. For a \emph{linear network}, one whose output is
+linear in its weights, the question can be answered exactly.
+
+A linear network passes the data through a fixed feature map
+$z(\mathbf{y})$ and reads the estimate off as a linear combination of
+the resulting features,
+%
+\begin{equation}
+  \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})
+  = z(\mathbf{y})^{\!\top} \bm{\gamma},
+  \label{eq:linear-net}
+\end{equation}
+%
+with weight vector $\bm{\gamma}$. Because the feature map is fixed,
+the estimate is linear in $\bm{\gamma}$.
+
+Consider $K$ simulated datasets, dataset $k$ carrying the estimand
+$\bm{\theta}^{(k)}$ and data $\mathbf{y}^{(k)}$. Collect the estimands
+into the rows of a matrix $\Theta$ and the feature vectors
+$z(\mathbf{y}^{(k)})$ into the rows of a matrix $Z$. Fitting the
+linear network~\eqref{eq:linear-net} by least squares over the $K$
+datasets gives the weight vector
+%
+\begin{equation}
+  \hat{\bm{\gamma}}
+  = (Z^{\!\top} Z)^{-1} Z^{\!\top}\, \Theta.
+  \label{eq:ols}
+\end{equation}
+%
+Both training schemes fit on the same $K$ datasets, so they share the
+feature matrix $Z$ and hence the matrix
+$A := (Z^{\!\top}Z)^{-1}Z^{\!\top}$ of~\eqref{eq:ols}; the schemes
+differ only in the estimand matrix $\Theta$. Standard training stacks
+the sampled estimands into $\Theta_{\MC}$; Rao-Blackwellised training
+stacks the same rows with each $\bm{\theta}_2$-block replaced by its
+conditional posterior mean. Writing
+$T = \{(\mathbf{y}^{(k)}, \bm{\theta}_1^{(k)})\}_{k=1}^{K}$ for the
+data and the $\bm{\theta}_1$-blocks of every dataset, and using the fact
+the datasets are simulated independently, the two estimand matrices
+are related, row by row, by a single conditional expectation,
+%
+\begin{equation}
+  \Theta_{\RB} = \E[\Theta_{\MC} \given T].
+  \label{eq:theta-rb}
+\end{equation}
+%
+Column $j$ of the weight matrix is $\hat{\bm{\gamma}}_{(j)} =
+A\,\Theta_{(j)}$. Because $A$ is built from the data alone it is fixed
+given $T$; combining this with~\eqref{eq:theta-rb}, the constant
+matrix passes straight through the conditional expectation,
+%
+\begin{equation}
+  \hat{\bm{\gamma}}_{(j)}^{\RB}
+  = A\,\Theta_{(j)}^{\RB}
+  = A\,\E\big[\Theta_{(j)}^{\MC} \given T\big]
+  = \E\big[A\,\Theta_{(j)}^{\MC} \given T\big]
+  = \E\big[\hat{\bm{\gamma}}_{(j)}^{\MC} \given T\big].
+  \label{eq:gamma-rb}
+\end{equation}
+%
+The fitted Rao-Blackwellised weights are therefore the
+Rao-Blackwellisation of the fitted standard weights, with $T$ the
+conditioning variable. The law of total variance~\eqref{eq:rb-inequality}
+applies again,
+%
+\begin{equation}
+  \Var\big(\hat{\bm{\gamma}}_{(j)}^{\MC}\big)
+  - \Var\big(\hat{\bm{\gamma}}_{(j)}^{\RB}\big)
+  = \E\big[\Var(\hat{\bm{\gamma}}_{(j)}^{\MC} \given T)\big]
+  \;\succeq\; 0.
+  \label{eq:linear-result}
+\end{equation}
+%
+For a linear network, then, Rao-Blackwellisation not only reduces the variance of the training gradient; it reduces the variance
+of the fitted weights themselves, for any finite training set.
+The Rao-Blackwellised estimator makes more efficient use of the same
+simulated data.
+
+A fully nonlinear network does not admit the closed
+ form~\eqref{eq:ols}, and no such exact statement is available in general. However, the
+linear result is suggestive of the nonlinear case: if
+every layer but the last is held fixed, training the final layer is
+exactly the linear problem above, with $z$ the feature map computed
+by the fixed layers, so the
+argument~\eqref{eq:linear-net}--\eqref{eq:linear-result} applies to
+the final layer (with linear activation) of any network, be it linear or nonlinear. A complete treatment of the nonlinear
+case is left to future work.
+
+
+% ################################################################
+% PART II -- EXPERIMENT: BAYESIAN LINEAR REGRESSION
+% ################################################################
+
+% ----------------------------------------------------------------
+\section{Application to Bayesian linear regression}
+\label{sec:rb-application}
+
+% ----------------------------------------------------------------
+\subsection{The Bayesian linear regression model}
+\label{sec:lr-model}
+
+We tested the method on Bayesian linear regression, Example~2 from Section~\ref{sec:cs-linreg}. The
+model~\eqref{eq:lr-model} is
+$\bm{\beta} \sim \Normal(\mathbf{0}, \sigma_0^2 I_p)$,
+$\tau \sim \Uniform(\tau_{\text{low}}, \tau_{\text{high}})$, and
+$\mathbf{y} \given \bm{\beta}, \tau \sim
+\Normal(X\bm{\beta}, \tau^{-1} I_{n})$ for a fixed design matrix
+$X \in \reals^{n \times p}$. This model is an ideal test case for Rao-Blackwellisation because it is simple and well-understood. The estimand is $\bm{\theta} = (\bm{\beta}^{\!\top}, \sigma)^{\!\top}$,
+of dimension $p+1$. In the notation of Section~\ref{sec:rb-loss},
+$\bm{\theta}_2 = \bm{\beta}$ is the conjugate block to be integrated
+out and $\bm{\theta}_1 = \sigma$ is the sampled block.
+
+The model is conditionally conjugate in both blocks, as
+Section~\ref{sec:conj-linreg} derives. Two of those conditionals matter
+here. Given the precision, the coefficients have the Gaussian
+conditional
+$\bm{\beta} \given \mathbf{y}, \tau \sim
+\Normal(\bm{\beta}_n, \Sigma_n)$ of~\eqref{eq:lr-conditional}, with
+covariance and mean
+$\Sigma_n = (\sigma_0^{-2} I_p + \tau X^{\!\top}X)^{-1}$ and
+$\bm{\beta}_n = \Sigma_n\,\tau X^{\!\top}\mathbf{y}$
+of~\eqref{eq:lr-defs}; given the coefficients, the precision has the
+truncated-Gamma conditional~\eqref{eq:lr-tau-posterior}. The Gaussian
+$\bm{\beta}$-conditional is the structure that the Rao-Blackwellised
+loss of Section~\ref{sec:lr-losses} exploits, and both conditionals
+drive the Gibbs sampler used for the Bayes floor in
+Section~\ref{sec:bayes-floor}.
+
+% ----------------------------------------------------------------
+\subsection{Monte Carlo and Rao-Blackwellised training losses}
+\label{sec:lr-losses}
+
+The standard (Monte Carlo) per-sample loss is the squared error
+against the sampled parameters,
+%
+\begin{equation}
+  \ell_{\MC}(\bm{\gamma})
+  = \|\hat{\bm{\theta}}_{\bm{\gamma}}^{\beta}(\mathbf{y}) - \bm{\beta}\|^2
+  + (\hat{\bm{\theta}}_{\bm{\gamma}}^{\sigma}(\mathbf{y}) - \sigma)^2.
+  \label{eq:lr-mc-loss}
+\end{equation}
+%
+Applying the squared-error construction of
+Section~\ref{sec:rb-mse} with the conjugate
+posterior~\eqref{eq:lr-conditional} gives the Rao-Blackwellised loss
+%
+\begin{equation}
+  \ell_{\RB}(\bm{\gamma})
+  = \|\hat{\bm{\theta}}_{\bm{\gamma}}^{\beta}(\mathbf{y})
+      - \bm{\beta}_n(\sigma, \mathbf{y})\|^2
+  + \Tr(\Sigma_n)
+  + (\hat{\bm{\theta}}_{\bm{\gamma}}^{\sigma}(\mathbf{y}) - \sigma)^2,
+  \label{eq:lr-rb-loss}
+\end{equation}
+%
+in which the sampled $\bm{\beta}$ is replaced by the conditional mean
+$\bm{\beta}_n$ and the trace term $\Tr(\Sigma_n)$, being independent
+of $\bm{\gamma}$, contributes no gradient. The two losses have the
+same population minimiser; they differ only in the variance of the
+stochastic gradient, exactly as Section~\ref{sec:rb-loss} describes.
+
+% ----------------------------------------------------------------
+\subsection{Quantifying the variance reduction}
+\label{sec:lr-variance-reduction}
+
+The trace term in~\eqref{eq:lr-rb-loss} is constant in the network
+weights, so it does not enter the optimisation. It is nevertheless
+the quantity that explains when Rao-Blackwellisation should be most
+effective. Conditional on $(\mathbf{y},\tau)$, the sampled coefficient
+target decomposes as
+%
+\begin{equation}
+  \bm{\beta}
+  =
+  \bm{\beta}_n
+  +
+  \bm{\varepsilon},
+  \qquad
+  \bm{\varepsilon} \given \mathbf{y},\tau
+  \sim
+  \Normal(\mathbf{0},\Sigma_n).
+\end{equation}
+%
+Thus the Monte Carlo target differs from the Rao-Blackwellised target
+by a zero-mean posterior fluctuation with covariance $\Sigma_n$. For
+any beta-head prediction
+$\hat{\bm{\theta}}_{\bm{\gamma}}^\beta(\mathbf{y})$, the conditional
+squared-error risk satisfies
+%
+\begin{equation}
+  \E\!\left[
+  \|\hat{\bm{\theta}}_{\bm{\gamma}}^\beta(\mathbf{y})-\bm{\beta}\|^2
+  \given \mathbf{y},\tau
+  \right]
+  =
+  \|\hat{\bm{\theta}}_{\bm{\gamma}}^\beta(\mathbf{y})-\bm{\beta}_n\|^2
+  +
+  \Tr(\Sigma_n).
+  \label{eq:lr-target-noise}
+\end{equation}
+%
+The term $\Tr(\Sigma_n)$ is therefore the conditional target variance
+seen by the Monte Carlo loss and removed by the Rao-Blackwellised loss.
+
+The same quantity controls the gradient noise. Let
+$J_{\bm{\gamma}}(\mathbf{y}) =
+\nabla_{\bm{\gamma}}\hat{\bm{\theta}}_{\bm{\gamma}}^\beta(\mathbf{y})$
+denote the Jacobian of the beta-head with respect to the network
+weights. The beta part of the Monte Carlo gradient is
+%
+\begin{equation}
+  G_{\MC}^{\beta}
+  =
+  2J_{\bm{\gamma}}(\mathbf{y})^{\!\top}
+  \left(
+  \hat{\bm{\theta}}_{\bm{\gamma}}^\beta(\mathbf{y})-\bm{\beta}
+  \right),
+\end{equation}
+%
+while the Rao-Blackwellised gradient replaces $\bm{\beta}$ by
+$\bm{\beta}_n$. Conditional on $(\mathbf{y},\tau)$, the latter is
+fixed and the only remaining randomness in $G_{\MC}^{\beta}$ is the
+posterior fluctuation $\bm{\beta}-\bm{\beta}_n$. Hence
+%
+\begin{equation}
+  \Var\!\left(
+  G_{\MC}^{\beta}
+  \given \mathbf{y},\tau
+  \right)
+  =
+  4J_{\bm{\gamma}}(\mathbf{y})^{\!\top}
+  \Sigma_n
+  J_{\bm{\gamma}}(\mathbf{y}),
+  \label{eq:lr-gradient-cov-gap}
+\end{equation}
+%
+which is precisely the conditional gradient variance removed by
+Rao-Blackwellisation.
+
+The size of this removed component can be read directly from the
+spectrum of the design matrix. If
+$\lambda_1,\ldots,\lambda_p$ are the eigenvalues of $X^{\!\top}X$, then
+%
+\begin{equation}
+  \Tr(\Sigma_n)
+  =
+  \sum_{j=1}^{p}
+  \frac{1}{\sigma_0^{-2}+\tau\lambda_j}
+  =
+  \sigma_0^2
+  \sum_{j=1}^{p}
+  \frac{1}{1+\tau\sigma_0^2\lambda_j}.
+  \label{eq:lr-trace-spectrum}
+\end{equation}
+%
+Each summand corresponds to one coefficient direction. Directions with
+large $\lambda_j$ are well identified by the data and contribute
+little posterior variance; directions with small $\lambda_j$ remain
+uncertain and contribute close to the prior variance $\sigma_0^2$.
+Thus Rao-Blackwellisation should be most effective in regimes where
+many coefficient directions are weakly identified: high-dimensional
+problems, ill-conditioned designs, noisy observations, or small
+sample sizes.
+
+Under the uniform precision prior used in the experiment,
+$\tau\sim\Uniform(\tau_{\mathrm{low}},\tau_{\mathrm{high}})$, the
+expected removed target variance has the closed form
+%
+\begin{equation}
+  \E_{\tau}\!\left[\Tr(\Sigma_n)\right]
+  =
+  \frac{1}{\tau_{\mathrm{high}}-\tau_{\mathrm{low}}}
+  \sum_{j=1}^{p}
+  \frac{
+  \log(\sigma_0^{-2}+\tau_{\mathrm{high}}\lambda_j)
+  -
+  \log(\sigma_0^{-2}+\tau_{\mathrm{low}}\lambda_j)
+  }{\lambda_j},
+  \label{eq:lr-expected-trace}
+\end{equation}
+%
+
+% ----------------------------------------------------------------
+\subsection{The Gibbs benchmark}
+\label{sec:bayes-floor}
+
+To provide us with a reference for both neural networks' training performance,
+ the natural yardstick is the lowest loss that any
+estimator can attain, the \emph{Bayes-optimal floor},
+%
+\begin{align}
+  L^{*}
+  &= \E_{\mathbf{y}}\!\Big[
+     \E_{\bm{\theta} \given \mathbf{y}}
+     \big[\|\bm{\theta}
+     - \E[\bm{\theta} \given \mathbf{y}]\|^2\big]\Big]
+   \notag\\[2pt]
+  &= \E_{\mathbf{y}}\!\big[\Tr\Var(\bm{\theta} \given \mathbf{y})\big],
+  \label{eq:floor-def}
+\end{align}
+%
+attained by the posterior mean, so the floor is
+the expected posterior variance: the irreducible uncertainty that
+remains once the data have been seen. A network whose loss reaches
+$L^{*}$ is doing as well as any estimator could.
+
+The floor cannot be evaluated directly: neither the posterior mean
+nor the posterior variance in~\eqref{eq:floor-def} is available in
+closed form, because the joint posterior
+$p(\bm{\beta}, \tau \given \mathbf{y})$ is not a standard
+distribution. Its two conditionals are, however, standard
+(Section~\ref{sec:conj-linreg}), so it can be sampled by the Gibbs
+sampler of Example~2 (Section~\ref{sec:cs-linreg}): each sweep draws
+$\bm{\beta}$ from the
+Gaussian conditional~\eqref{eq:lr-conditional} through the Cholesky
+factor of $\Sigma_n^{-1}$, and $\tau$ from the truncated-Gamma
+conditional~\eqref{eq:lr-tau-posterior} by inverse-CDF sampling.
+
+\paragraph{Gibbs as a benchmark.}
+The sampler is run on a held-out test set of problems. After a
+burn-in of discarded sweeps, the retained draws
+$\{(\bm{\beta}^{(s)}, \tau^{(s)})\}_{s=1}^{S}$ are post-processed: the
+noise scale of each draw is recovered as
+$\sigma^{(s)} = (\tau^{(s)})^{-1/2}$ before averaging. The chain average then converges to the posterior mean as
+$S \to \infty$.
+\begin{align}
+  \tfrac{1}{S}\sum_s (\bm{\beta}^{(s)}, \sigma^{(s)}) \longrightarrow \E[\bm{\theta} \given \mathbf{y}]
+\end{align}
+
+With the posterior mean in hand for each test problem, the benchmark
+$L^{*}$ is estimated as the mean squared error of that estimate
+against the true $\bm{\theta}$, averaged over the test set. It is
+therefore computed in exactly the way the test loss of the neural
+estimators is, so the comparison of Section~\ref{sec:lr-results} is
+like-for-like.
+
+% ----------------------------------------------------------------
+\subsection{Experimental design}
+\label{sec:lr-design}
+
+We train both the standard Monte Carlo estimator and the Rao-Blackwellised estimator
+on simulated datasets from the Bayesian linear regression model.
+
+For each value of $p$, a single design matrix $X \in \mathbb{R}^{n \times p}$ is drawn once 
+and then fixed across all training and testing simulations. Its entries are sampled independently 
+from a standard normal distribution and the columns are standardised to have comparable 
+scale. This ensures that differences between Monte Carlo and Rao-Blackwellised training are 
+not confounded by changing the regression design across runs.
+
+The estimator is a three-layer multilayer perceptron of hidden width
+$128$ with ReLU activations and a softplus output on the $\sigma$-head
+to enforce positivity, trained with Adam~\citep{kingma2015adam} at
+learning rate $10^{-3}$. The two schemes are trained from identical
+initialisations on the same simulated batches, so that any difference
+between them is attributable to the loss alone. The experiment sweeps
+the parameter dimension $p \in \{2, 5, 10, 20, 30\}$ and the minibatch
+size $\{4, 16, 64, 256\}$ at a fixed sample size $n = 50$, training
+each cell for $200$ epochs over ten seeds. The precision prior is
+$\tau = \sigma^{-2} \sim \Uniform(0.01, 1)$, placing the noise scale in
+$\sigma \in (1, 10)$.
+
+A single design matrix $X$ is fixed per dimension. Because the
+population loss depends on $X$, each panel of
+Figure~\ref{fig:curves} corresponds to one inference task and results
+are aggregated only over training seeds, never pooled across design
+matrices. The Bayes-optimal floor $L^{*}$ for each dimension is
+computed by the Gibbs sampler of Section~\ref{sec:bayes-floor} on a
+held-out test set, in exactly the way the test loss of the neural
+estimators is, so the comparison of Section~\ref{sec:lr-results} is
+like-for-like.
+
+% ----------------------------------------------------------------
+\subsection{Results}
+\label{sec:lr-results}
+
+\paragraph{Rao-Blackwellisation beats Monte Carlo in every cell.}
+\label{sec:lr-main-grid}
+Figure~\ref{fig:curves} shows the training curves of the two
+estimators across the grid of parameter dimension $p$ and batch size,
+at the baseline sample size $n = 50$, as the seed mean with a
+$\pm 1$ standard-deviation band. The Rao-Blackwellised runs sit below
+the Monte Carlo runs in every panel, and the separation persists
+across all four batch sizes: a larger batch lowers both methods
+but does not close the gap between them.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{rb_tau_curves}
+  \caption{Training curves across parameter dimension
+  $p \in \{2, 5, 10, 20, 30\}$ (rows) and batch size
+  $\{4, 16, 64, 256\}$ (columns), at sample size $n = 50$ under the
+  precision prior $\tau = \sigma^{-2} \sim \Uniform(0.01, 1)$
+  (equivalently $\sigma \in (1, 10)$). Each panel shows the mean over
+  seeds with a $\pm 1$ standard-deviation band --- Monte Carlo (MC) in
+  blue, Rao-Blackwellised (RB) in orange. The dark green dashed line in
+  each panel marks the Bayes-optimal floor $L^{*}(p)$ for that dimension. RB
+  tracks at or below MC in every panel, at every batch size, and nearer
+  the floor.}
+  \label{fig:curves}
+\end{figure}
+
+This pattern holds across the whole grid: the Rao-Blackwellised
+estimator attains a lower final loss than the Monte Carlo estimator in
+all twenty $(p, \text{batch})$ cells (Appendix~\ref{app:main-grid}), and
+the advantage persists on a second, independent design matrix
+(Appendix~\ref{app:second-design}).
+This is consistent with the covariance calculation of
+Section~\ref{sec:lr-variance-reduction}. Increasing the parameter
+dimension adds coefficient directions to the sum
+\eqref{eq:lr-trace-spectrum}; when these directions are weakly
+identified, they contribute additional posterior target variance to
+the Monte Carlo gradient. Increasing the batch size has the opposite
+effect on the observed gap: it does not change $\Tr(\Sigma_n)$ for an
+individual simulated problem, but it averages that target noise over
+more simulations, giving a $1/B$ scaling.
+
+
+\paragraph{Approaching the Bayes floor.}
+\label{sec:lr-asymptotic}
+We can compare the neural estimators to the Bayes-optimal floor. At the
+baseline cell ($p = 20$, batch $16$) the Monte Carlo estimator reaches
+a final loss of $0.276$ and the Rao-Blackwellised estimator $0.198$,
+against a floor of $L^{*} = 0.126$: the Rao-Blackwellised estimator
+closes about half (some $52\%$) of the gap between the Monte Carlo
+loss and the unreachable floor. The size of the gain varies across the
+grid with the excess-over-floor ratio
+$(\mathcal{L}_{\MC} - L^{*})/(\mathcal{L}_{\RB} - L^{*})$, which runs
+from near one at the largest batch, where both estimators have nearly
+exhausted the Monte Carlo noise, to above two at the smaller batches
+(Appendix~\ref{app:main-grid}).
+
+In some of the training curves, we observe both training curves coming asymptotically to different levels. Although, RB and MC have the same population asymptote, under finite-batch fixed-step optimisation they can have different effective asymptotes; RB's is lower because it removes a positive semi-definite component of the gradient covariance. This phenomenon could be minimised by applying a \emph{learning rate scheduler}, a standard neural network technique which dynamically adjusts the learning rate as training progresses.
+
+\paragraph{Rao-Blackwellisation versus larger batches.}
+\label{sec:lr-batch}
+Both Rao-Blackwellisation and a larger minibatch reduce the noise in
+the training gradient (the former by removing the sampled-coefficient
+variance analytically, the latter by averaging it over more samples),
+so it is natural to ask whether Rao-Blackwellisation is simply a larger
+batch in disguise. A batch-size sweep at $p = 20$ over
+$\{4, 16, 64, 256\}$ shows that the two are related but not identical.
+The Rao-Blackwellised estimator at batch $4$ matches the Monte Carlo
+estimator at batch $16$: its analytic variance reduction is worth a
+fourfold increase in batch size. At every batch size its excess over
+the floor is the smaller of the two, and only at the largest batch,
+where both estimators have nearly exhausted the Monte Carlo noise, do
+they nearly coincide (Appendix~\ref{app:batch-sweep}).
+
+The cleanest way to see the gain is to plot the test error against the
+total number of simulated samples seen, rather than against epochs
+(Figure~\ref{fig:vs-samples}). Because each gradient step consumes a
+fresh batch of simulations, and simulation is the dominant cost of
+training, samples seen is the natural measure of computational effort.
+At every dimension and every batch size the Rao-Blackwellised estimator
+(solid) tracks below the Monte Carlo estimator (dashed): it reaches any
+given accuracy from fewer simulated samples. The advantage is a genuine
+saving in simulation, not an artefact of how the budget is split into
+steps.
+
+\begin{figure}[H]
+  \centering
+  \IfFileExists{figures/rb_tau_vs_samples.png}
+    {\includegraphics[width=\textwidth]{rb_tau_vs_samples}}
+    {\fbox{\parbox[c][4.5cm][c]{\textwidth}{\centering\itshape
+      Figure pending: test MSE vs total samples seen
+      (re-export \texttt{rb\_tau\_vs\_samples}).}}}
+  \caption{Test MSE against the total number of simulated samples seen
+  (both axes logarithmic), for parameter dimension
+  $p \in \{2, 5, 10, 20, 30\}$ and batch sizes $\{4, 16, 64, 256\}$
+  (colours), under $\tau \sim \Uniform(0.01, 1)$. The Rao-Blackwellised
+  estimator (solid) lies below the Monte Carlo estimator (dashed) at
+  every batch size: it reaches a given accuracy from fewer simulated
+  samples, a saving in the dominant cost of training.}
+  \label{fig:vs-samples}
+\end{figure}
+
+% \subsection{Confirming the noise-level scaling}
+% \label{sec:lr-sigma-scaling}
+
+% Equation~\eqref{eq:plateau-gap} predicts that the plateau gap scales
+% linearly with $\E[\sigma^2]$. This is tested by comparing two priors
+% on $\tau$: the high-noise prior used here and a lower-noise prior used
+% in earlier runs. The two differ in $\E[\sigma^2]$ by a factor of
+% approximately $55$, and the analysis predicts the plateau gaps to
+% differ by the same factor. The measured gaps differ by a factor of
+% about $55$ - agreement to one significant figure, which is the
+% precision the leading-order analysis of Section~\ref{sec:sgd-plateau}
+% can be expected to deliver.
+
+% ----------------------------------------------------------------
+
+\section{Plug-in versus Rao-Blackwellised estimators}
+\label{sec:rb-vs-plugin}
+
+Our above analysis of the Rao-Blackwellised loss is built on the existence of an analytical conditional, in the case of linear regression this is $\beta_n(\sigma, \mathbf{y}) = \E[\beta \given \mathbf{y}, \sigma]$. Since this conditional mean is available in closed
+form, it is natural to ask whether the network needs a $\beta$-head at all: one
+could train it to estimate only the noise scale $\hat{\sigma}_\gamma(\bm y) \approx \E[\sigma \given \mathbf{y}]$ and recover the
+coefficients by substitution. This is the \emph{plug-in} estimator,
+\begin{equation}
+  \tilde{\beta}(\mathbf{y}) = \beta_n\big(\hat{\sigma}_\gamma(\mathbf{y}), \mathbf{y}\big),
+\end{equation}
+the conditional mean evaluated at a point estimate of $\sigma$. While this estimator will also remove the noise introduced from sampling $\beta$, as we will now show, it is biased.
+
+Let us first define the true posterior mean of the noise scale as $\bar{\sigma} = \E[\sigma \given \mathbf{y}]$ and note the first two moments of the posterior of $\sigma$:
+%
+\begin{equation*}
+  \E_{\sigma\given\mathbf{y}}[\sigma - \bar\sigma] = 0,
+  \qquad
+  \E_{\sigma\given\mathbf{y}}\big[(\sigma - \bar\sigma)^2\big]
+  = \Var(\sigma \given \mathbf{y})
+  \label{eq:posterior-moments}.
+\end{equation*}
+%
+Now let us fix $\mathbf{y}$ and expand $\beta_n(\sigma, \mathbf{y})$ to second order about $\bar{\sigma}$:
+%
+\begin{equation}
+  \beta_n(\sigma)
+  = \beta_n(\bar\sigma)
+    + \beta_n'(\bar\sigma)\,(\sigma - \bar\sigma)
+    + \tfrac{1}{2}\,\beta_n''(\bar\sigma)\,(\sigma - \bar\sigma)^2
+    + \cdots.
+  \label{eq:taylor}
+\end{equation}
+%
+Using \eqref{eq:posterior-moments} and \eqref{eq:taylor}, the bias can be approximated as:
+%
+\begin{equation}
+  \E[\beta \given \mathbf{y}] - \tilde{\beta}(\mathbf{y})
+  \;=\;
+  \E_{\sigma\given\mathbf{y}}[\beta_n(\sigma)] - \beta_n(\bar\sigma)
+  \;\approx\;
+  \tfrac{1}{2}\,\beta_n''(\bar\sigma, \mathbf{y})\,\Var(\sigma \given \mathbf{y}),
+  \label{eq:plugin-bias}
+\end{equation}
+%
+dropping higher-order terms and treating $\hat\sigma = \bar\sigma$ to
+isolate the substitution error. The bias vanishes when $\beta_n$
+is affine in $\sigma$ or the posterior of $\sigma$ is degenerate, and otherwise
+scales with the curvature of $\beta_n$ and the posterior variance of $\sigma$: it
+is the cost of conditioning on a point estimate of $\sigma$ rather than
+integrating it out.
+
+In the Bayesian linear regression model that curvature is genuinely present. The conditional mean
+\begin{equation*}
+  \beta_n(\sigma, \mathbf{y})
+  = \big(\sigma_0^{-2} I_p + \sigma^{-2} X^\top X\big)^{-1}
+    \sigma^{-2} X^\top \mathbf{y}
+\end{equation*}
+is a nonlinear, saturating function of the noise scale --- approaching the
+least-squares solution $(X^\top X)^{-1} X^\top \mathbf{y}$ as $\sigma \to 0$ and
+shrinking towards the prior mean $0$ as $\sigma$ grows --- so
+$\beta_n'' \neq 0$ and~\eqref{eq:plugin-bias} does not vanish.
+
+The Rao-Blackwellised estimator does not pay this price, because its
+$\beta$-head performs the average in~\eqref{eq:nested-risk} for free. Its
+target is the posterior mean $\E[\beta \given \mathbf{y}]$ --- the same as the
+standard Monte Carlo head, with which it shares a minimiser by construction
+(Section~\ref{sec:rb-bayes-risk}) --- and squared-error training realises that
+minimiser as the conditional mean of the target given $\mathbf{y}$. The
+marginalisation over $\sigma$ that the plug-in skips is carried out by the
+regression itself: across training each $\mathbf{y}$ is paired with the spread of
+$\sigma$ its posterior allows, and the fitted value is their average; a point
+estimate $\hat\sigma$ carries none of that spread. How much the plug-in loses
+therefore depends on how sharply the posterior of $\sigma$ concentrates --- small
+where $\sigma$ is well identified, larger where it is not.
+
+
+\section{Discussion}
+\label{sec:lr-discussion}
+
+The experiments support a strong conclusion, that Rao-Blackwellisation of the 
+Bayes risk loss does indeed improve training efficiency. The Monte Carlo estimator carries the full gradient
+variance, including the large component contributed by the sampled
+coefficients $\bm{\beta}$ in the high-noise regime; the
+Rao-Blackwellised estimator removes that component analytically,
+substituting the conditional posterior mean, and settles markedly
+lower. At the baseline cell the Monte Carlo estimator's final loss
+sits $119\%$ above the floor and the Rao-Blackwellised estimator's only
+$57\%$ above it, closing about half of the Monte Carlo estimator's
+excess.
+
+This is the behaviour Section~\ref{sec:rb-loss} predicts. Its gradient-variance result
+guarantees that Rao-Blackwellisation cannot raise the variance of the
+training gradient, for any model and any architecture, and a
+lower-variance gradient is a cleaner signal for the optimiser. The
+grid bears this out without exception: across every combination of
+seed, parameter dimension, and batch size, the Rao-Blackwellised
+estimator reached a lower final loss than the Monte Carlo estimator.
+
+Section~\ref{sec:linear-network} shows that when the network is
+linear in its weights, Rao-Blackwellisation reduces the variance not
+only of the gradient but of the fitted weights themselves; for a
+nonlinear network no such closed-form statement is available. The
+estimator trained here is nonlinear, a multilayer perceptron, so that
+stronger weight-level guarantee does not formally apply to it. That
+Rao-Blackwellisation nonetheless lowers its loss in every cell is
+empirical evidence that the linear-case mechanism carries over,
+consistent with reading the final layer of the network as a linear
+map of fixed features, the regime in which
+Section~\ref{sec:linear-network} does apply. 

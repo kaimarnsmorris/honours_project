@@ -1,0 +1,84 @@
+\contentsline {chapter}{Abstract}{i}{chapter*.1}%
+\contentsline {chapter}{Acknowledgements}{ii}{chapter*.2}%
+\contentsline {chapter}{List of Figures}{vi}{section*.4}%
+\contentsline {chapter}{List of Tables}{viii}{section*.6}%
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Motivation}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Related work}{2}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Simulation-based inference}{2}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Normalising flows}{3}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}Neural Bayes estimation and amortised inference}{3}{subsection.1.2.3}%
+\contentsline {subsection}{\numberline {1.2.4}The simulation cost of likelihood-free inference}{3}{subsection.1.2.4}%
+\contentsline {subsection}{\numberline {1.2.5}Variance reduction for stochastic gradients}{4}{subsection.1.2.5}%
+\contentsline {section}{\numberline {1.3}Contributions}{4}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Thesis outline}{5}{section.1.4}%
+\contentsline {chapter}{\numberline {2}Bayesian Inference}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Conjugate Models}{6}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}A conjugate example: linear regression}{7}{subsection.2.1.1}%
+\contentsline {section}{\numberline {2.2}Markov chain Monte Carlo}{8}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}The Metropolis--Hastings algorithm}{9}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}The Gibbs sampler}{10}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}Case studies}{11}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Example 1 --- the normal model}{12}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Example 2 --- Bayesian linear regression}{13}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Example 3 --- the AR(1) model}{13}{subsection.2.3.3}%
+\contentsline {paragraph}{The autoregressive coefficient.}{14}{section*.8}%
+\contentsline {paragraph}{The noise scale.}{14}{section*.9}%
+\contentsline {paragraph}{The sampler.}{14}{section*.10}%
+\contentsline {section}{\numberline {2.4}The cost of per-dataset inference}{15}{section.2.4}%
+\contentsline {chapter}{\numberline {3}Amortisation and Neural Bayes Estimators}{16}{chapter.3}%
+\contentsline {section}{\numberline {3.1}The Bayes estimator framework}{17}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Loss functions and posterior summaries}{17}{subsection.3.1.1}%
+\contentsline {section}{\numberline {3.2}Neural Bayes estimators}{19}{section.3.2}%
+\contentsline {paragraph}{A parametric family of estimators.}{19}{section*.11}%
+\contentsline {paragraph}{A Monte Carlo objective.}{19}{section*.12}%
+\contentsline {paragraph}{A neural network surrogate.}{20}{section*.13}%
+\contentsline {subsection}{\numberline {3.2.1}Training by stochastic gradient descent}{20}{subsection.3.2.1}%
+\contentsline {section}{\numberline {3.3}Neural architectures}{21}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}The DeepSets architecture}{21}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Recurrent architectures for sequential data}{22}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Feed-forward architectures for fixed-dimension data}{23}{subsection.3.3.3}%
+\contentsline {section}{\numberline {3.4}Example 1: estimating normal parameters}{23}{section.3.4}%
+\contentsline {chapter}{\numberline {4}Rao-Blackwellised Loss Functions}{25}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Rao-Blackwellising the loss function}{25}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}The Rao-Blackwell theorem}{25}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Rao-Blackwellising the Bayes risk}{26}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}The squared-error case}{27}{subsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.1.4}The training gradients}{28}{subsection.4.1.4}%
+\contentsline {subsection}{\numberline {4.1.5}The linear network case}{30}{subsection.4.1.5}%
+\contentsline {section}{\numberline {4.2}Application to Bayesian linear regression}{31}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}The Bayesian linear regression model}{31}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Monte Carlo and Rao-Blackwellised training losses}{31}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Quantifying the variance reduction}{31}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}The Gibbs benchmark}{32}{subsection.4.2.4}%
+\contentsline {paragraph}{Gibbs as a benchmark.}{33}{section*.18}%
+\contentsline {subsection}{\numberline {4.2.5}Experimental design}{33}{subsection.4.2.5}%
+\contentsline {subsection}{\numberline {4.2.6}Results}{34}{subsection.4.2.6}%
+\contentsline {paragraph}{Rao-Blackwellisation beats Monte Carlo in every cell.}{34}{section*.19}%
+\contentsline {paragraph}{Approaching the Bayes floor.}{35}{section*.21}%
+\contentsline {paragraph}{Rao-Blackwellisation versus larger batches.}{35}{section*.22}%
+\contentsline {section}{\numberline {4.3}Plug-in versus Rao-Blackwellised estimators}{36}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Discussion}{37}{section.4.4}%
+\contentsline {chapter}{\numberline {5}Importance Sampling}{39}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Importance sampling}{40}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Application to an AR(1) model}{41}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}The AR(1) model and a recurrent estimator}{41}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}A family of proposals}{42}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Results}{43}{subsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.2.4}The gradient variance, measured directly}{45}{subsection.5.2.4}%
+\contentsline {subsection}{\numberline {5.2.5}Why reweighting cannot help here}{47}{subsection.5.2.5}%
+\contentsline {section}{\numberline {5.3}When importance sampling can help}{49}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Discussion}{50}{section.5.4}%
+\contentsline {chapter}{\numberline {6}Discussion and Conclusion}{52}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Future work}{53}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Conclusion}{53}{section.6.2}%
+\contentsline {chapter}{\numberline {A}Derivations}{55}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Detailed balance for Metropolis--Hastings}{55}{section.A.1}%
+\contentsline {section}{\numberline {A.2}The optimal importance sampling proposal}{55}{section.A.2}%
+\contentsline {chapter}{\numberline {B}Experimental details}{57}{appendix.B}%
+\contentsline {section}{\numberline {B.1}Configuration and protocol}{57}{section.B.1}%
+\contentsline {section}{\numberline {B.2}Main grid results}{57}{section.B.2}%
+\contentsline {section}{\numberline {B.3}Batch-size sweep}{57}{section.B.3}%
+\contentsline {section}{\numberline {B.4}Bayes-optimal floors}{59}{section.B.4}%
+\contentsline {section}{\numberline {B.5}Second design matrix}{59}{section.B.5}%
+\contentsline {section}{\numberline {B.6}Reproduction}{59}{section.B.6}%

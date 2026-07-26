@@ -1,0 +1,242 @@
+% ================================================================
+%  CHAPTER 1 -- INTRODUCTION
+%  Status: DRAFT v1 (2026-05-18).
+% ================================================================
+\chapter{Introduction}
+\label{ch:introduction}
+
+% ----------------------------------------------------------------
+\section{Motivation}
+\label{sec:motivation}
+
+Bayesian inference provides a principled framework for reasoning about
+unknown parameters under uncertainty. Given observed data and a
+statistical model, it combines prior beliefs with the likelihood to
+produce a posterior distribution that encodes our knowledge about
+the parameters after observing the data. However, for all but a small class of so-called conjugate models the posterior is analytically intractable, and
+inference must proceed by computational approximation.
+
+The dominant approximation is Markov chain Monte Carlo (MCMC), reviewed in Chapter~\ref{ch:mcmc}, which
+constructs a Markov chain whose stationary distribution is the
+posterior and draws samples by simulating it~\citep{brooks2011handbook, robert2004monte}. MCMC is reliable and
+theoretically well understood: under broad conditions, the chain converges to the exact
+posterior, and the approximation error is reduced simply by running it
+for longer. It carries, however, a structural cost. An MCMC chain
+targets the posterior for one specific dataset. When a new dataset is
+observed the entire procedure must typically be repeated from scratch, because
+the chain transfers no information from one inference problem to the
+next. In settings where the same model must be fitted to hundreds or
+thousands of distinct datasets, as arises routinely in spatial
+statistics and the analysis of replicated
+experiments~\citep{sainsburydale2024nbe, sainsburydale2025graph}, the total cost scales linearly in the number of
+problems, with no economy of scale.
+
+\emph{Amortised} inference takes the opposite trade-off~\citep{zammitmangion2025neural}. Rather than
+solving each inference problem independently, one invests
+computational effort once to learn a reusable mapping from
+data to posterior summaries. Inference for any new dataset then costs
+only a single evaluation of that mapping. A \emph{neural Bayes
+estimator} (NBE)~\citep{sainsburydale2024nbe} realises this idea by training
+a neural network to approximate the Bayes estimator, the function
+that maps data to the posterior summary minimising a chosen loss
+function (developed in Chapter~\ref{ch:amortization}). Neural networks are typically used here because they are good function approximators, have reliable black-box training methods, and are fast to run in forward mode. The
+network is trained on data simulated from the model, so the procedure
+is likelihood-free: it requires only the ability to simulate, not to
+evaluate the likelihood. Once trained, the network can quickly generate parameter estimates (such as posterior means) by applying what is effectively just linear algebra to a new dataset -- this is known as a forward pass of the network.
+
+The training of an NBE has at its heart a Monte Carlo
+computation. The network is fitted by minimising an empirical average
+of the loss over simulated parameter--data pairs, and this empirical
+average is a Monte Carlo estimate of the population Bayes risk. Its
+gradient, the quantity that drives training, is likewise a Monte
+Carlo estimate of the population gradient, and is therefore a random
+quantity with a variance.
+
+This thesis takes that observation as its starting point. If training
+an NBE involves Monte Carlo integration, then the
+techniques developed over decades to reduce the variance of Monte
+Carlo estimators can be applied not to the inference itself, but to the
+training of the estimator. A training gradient with lower
+variance is a better-behaved optimisation signal, and a better-behaved
+signal should produce a better estimator for the same computational
+budget.
+
+The primary technique developed here is \emph{Rao-Blackwellisation} (Chapter~\ref{ch:rao-blackwell}). The Rao-Blackwell theorem states that conditioning an estimator on
+additional information cannot increase its variance under a convex
+loss. Applied to the training gradient of an NBE, it
+implies that if part of the parameter vector has a tractable
+conditional posterior given the rest, that part can be integrated
+out of the loss analytically rather than sampled. The resulting
+training gradient is provably no noisier than the standard one, and is
+typically much less noisy. The conditional structure this exploits,
+conditional conjugacy, is the same structure that makes Gibbs
+sampling possible, and it is common in hierarchical models.
+
+Another variance-reduction technique, \emph{importance sampling}, is also investigated in Chapter~\ref{ch:importance-sampling}. Unlike Rao-Blackwellisation, importance sampling does not require a tractable conditional posterior; it only requires simulated training examples to be drawn from a proposal distribution, then reweighted back such that the network still learns the unbiased estimator. This makes it more broadly applicable in principle, but also less automatic. Its benefit depends on the proposal placing simulation effort where the loss, or the training-gradient noise, is actually concentrated. In the autoregressive experiment this condition fails. The estimator is already close to the exact posterior across most of the prior, and the proposal emphasises regions that are not the dominant source of its remaining error. Reweighting therefore does not improve accuracy; when pushed further, it lowers the effective sample size and adds noise.
+
+
+
+% ----------------------------------------------------------------
+\section{Related work}
+\label{sec:related-work}
+
+\subsection{Simulation-based inference}
+\label{sec:rw-sbi}
+
+The technique of producing estimators here belongs to the broader category of \emph{simulation-based
+inference}: the family of methods for fitting models that can be
+simulated from but whose likelihood is intractable or too expensive to
+evaluate~\citep{cranmer2020frontier}. The classical representative of this method is
+approximate Bayesian computation, which compares simulated and
+observed data through summary statistics and a tolerance and underlies
+much of the applied likelihood-free literature. Over the past decade
+the field has been reshaped by neural networks, which replace
+hand-crafted summaries and accept--reject schemes with learned
+mappings between data and inferential targets~\citep{zammitmangion2025neural}.
+The neural approaches are not uniformly superior. A systematic
+benchmark finds no single best algorithm, and shows that the choice of
+performance metric and the sample efficiency of the training scheme
+matter as much as the architecture~\citep{lueckmann2021benchmarking};
+but they have made amortised, reusable inference practical for models
+that were previously out of reach.
+
+\subsection{Normalising flows}
+\label{sec:rw-flows}
+
+Neural simulation-based methods are often distinguished by what they
+learn. \emph{Neural posterior estimation} learns the full posterior
+density, \emph{neural likelihood estimation} learns the
+likelihood, and \emph{neural ratio
+estimation} learns a likelihood ratio for model comparison~\citep{papamakarios2019snl}. Each
+typically represents the learned distribution with a \emph{normalising
+flow}, a bijective neural transformation of a simple base density whose
+tractable Jacobian yields an exact likelihood~\citep{papamakarios2017maf,
+papamakarios2021flows}. The \textsc{BayesFlow} framework couples such
+an invertible network with a summary network that learns informative
+statistics directly from simulations, giving a globally amortised
+posterior sampler~\citep{radev2020bayesflow, radev2023bayesflow}. These
+methods return a complete posterior, at the cost of training and
+storing a generative model of it.
+
+\subsection{Neural Bayes estimation and amortised inference}
+\label{sec:rw-nbe}
+
+Neural Bayes estimation, the setting of this thesis, is the most
+economical point on this spectrum: it learns only a point summary of
+the posterior, the Bayes estimator under a chosen loss, trading
+the full distribution of the density-estimation methods for speed and
+simplicity. The estimator in the form used here is due to
+\citet{sainsburydale2024nbe}, who establish the decision-theoretic
+framework, the permutation-invariant architecture for replicated data,
+and applications to weakly identified and highly parameterised models;
+the approach has since been extended to irregular spatial data with
+graph neural networks~\citep{sainsburydale2025graph}. It sits within
+the broader programme of amortised inference surveyed by
+\citet{zammitmangion2025neural}: methods that pay a one-off training
+cost up front and thereafter return estimates for new datasets in single fast forward passes, in a fraction of a second where likelihood-based inference could
+take hours. That survey spans point estimation, approximate Bayesian
+inference, learned summary statistics, and likelihood approximation;
+but, like the works above, it treats the variance of the training
+objective as incidental rather than as a quantity to be controlled.
+That variance is the gap this thesis takes up.
+
+\subsection{The simulation cost of likelihood-free inference}
+\label{sec:rw-efficiency}
+
+A separate strand of work attacks the efficiency of likelihood-free
+inference from the simulation side. Because these methods lean on
+enormous numbers of model simulations, much can be saved by spending
+the simulation budget wisely. Multifidelity and multilevel schemes
+combine cheap, approximate simulators with the expensive model of
+interest and allocate computation across fidelities to minimise cost
+at a fixed accuracy~\citep{warne2022multilevel}, an allocation that can
+be made adaptive, learning the relationship between fidelities on the
+fly to approach the optimal trade-off~\citep{prescott2024multifidelity}.
+This line is complementary to the present work: it reduces the number
+and cost of the simulations that feed inference, whereas this
+thesis reduces the variance of the training gradient extracted
+from a given set of simulations; the two could in principle be
+combined.
+
+\subsection{Variance reduction for stochastic gradients}
+\label{sec:rw-variance}
+
+The technique developed here belongs to the literature on variance
+reduction for stochastic optimisation, which includes control variates
+and related estimators~\citep{wang2013variance}. 
+Rao-Blackwellisation
+in particular has been used to reduce the variance of gradient
+estimators elsewhere in machine learning, notably for the
+straight-through Gumbel-softmax estimator~\citep{paulus2021raoblackwell}
+and for stochastic gradients of discrete
+distributions~\citep{liu2019raoblackwell}.
+Those methods Rao-Blackwellise the gradient with respect to discrete latent
+variables or reparameterisation noise; the contribution of this thesis
+differs in what is conditioned on. The training gradient of a neural
+Bayes estimator is Rao-Blackwellised with respect to a conjugate
+block of the model parameters, exploiting the conditional conjugacy of
+the inference model itself: the same structure that makes Gibbs
+sampling possible.
+
+% ----------------------------------------------------------------
+\section{Contributions}
+\label{sec:contributions}
+
+The contributions of this thesis are as follows.
+
+\begin{enumerate}
+  \item \textbf{Frames the variance of the training gradient as an
+  explicit, reducible target.} A NBE is trained by
+  minimising an empirical (Monte Carlo) Bayes
+  risk~\citep{sainsburydale2024nbe}, so its training gradient is itself
+  a Monte Carlo estimator with a variance: a property of how the
+  loss is sampled, not of the inference problem. Recognising this
+  brings the Monte Carlo variance-reduction toolbox to bear on the
+  training of these estimators, which their literature has not
+  previously addressed (Chapter~\ref{ch:amortization}).
+
+  \item \textbf{Derives the \emph{Rao-Blackwellised loss}:} When a block of
+  the parameter vector has a tractable conditional posterior, that
+  block is integrated out of the loss analytically. For squared-error
+  loss the construction reduces to substituting the conditional
+  posterior mean for the sampled target, and the residual conditional
+  variance contributes no gradient (Chapter~\ref{ch:rao-blackwell}).
+
+  \item \textbf{Proves that the resulting gradient-variance reduction is
+  positive semi-definite} (Rao-Black\-wellisation can never increase the
+  variance of the training gradient, for any model or architecture), and shows that for a linear network the same reduction carries to
+  the fitted network weights themselves (Chapter~\ref{ch:rao-blackwell}).
+
+  \item \textbf{Demonstrates the method empirically on Bayesian linear
+  regression.} Across a grid of problem dimensions and batch sizes, the
+  Rao-Blackwellised estimator attains a lower loss than the standard NBE in every configuration, closing about half of the gap to
+  the theoretical minimum, the Bayes-optimal floor computed by Gibbs sampling, and matching the
+  standard NBE at a quarter of the minibatch size
+  (Chapter~\ref{ch:rao-blackwell}).
+
+  \item \textbf{Contrasts Rao-Blackwellisation with importance sampling,} a
+  second variance-reduction technique, on an autoregressive model,
+  where importance sampling returns a negative result: establishing
+  that its benefit is contingent on the problem, where the
+  Rao-Blackwell guarantee is unconditional
+  (Chapter~\ref{ch:importance-sampling}).
+\end{enumerate}
+
+% ----------------------------------------------------------------
+\section{Thesis outline}
+\label{sec:outline}
+
+Chapter~\ref{ch:mcmc} reviews Markov chain Monte Carlo, the
+per-dataset incumbent against which amortised inference is contrasted,
+and collects three running case studies --- the normal,
+linear-regression, and autoregressive models --- used later as Bayes-optimal
+references for neural estimators. Chapter~\ref{ch:amortization} develops the Bayes estimator
+framework, defines neural Bayes estimators, and establishes the
+central observation that their training uses Monte Carlo integration.
+Chapter~\ref{ch:rao-blackwell} is the core of the thesis: it derives
+the Rao-Blackwellised loss, proves the gradient-variance reduction,
+analyses its effect on the converged loss, and tests the method on
+Bayesian linear regression. Chapter~\ref{ch:importance-sampling}
+develops importance sampling as a contrasting technique and applies it
+to an autoregressive model. Chapter~\ref{ch:conclusion} summarises the
+findings and discusses limitations and directions for further work.

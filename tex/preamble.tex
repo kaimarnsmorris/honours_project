@@ -1,0 +1,107 @@
+% ============================================================
+%  preamble.tex  --  packages, theorem environments, macros
+% ============================================================
+
+% --- Page layout -------------------------------------------------
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Separate paragraphs by a vertical gap instead of a first-line indent.
+\usepackage{parskip}
+
+% Pull chapter titles up: the report class reserves 50pt of blank space
+% above every chapter heading; trimming it to 10pt reclaims ~2 lines of
+% vertical room per chapter page (keeps the abstract on a single page).
+\makeatletter
+\def\@makechapterhead#1{%
+  \vspace*{10\p@}%
+  {\parindent \z@ \raggedright \normalfont
+    \ifnum \c@secnumdepth >\m@ne
+        \huge\bfseries \@chapapp\space \thechapter
+        \par\nobreak
+        \vskip 20\p@
+    \fi
+    \interlinepenalty\@M
+    \Huge \bfseries #1\par\nobreak
+    \vskip 40\p@
+  }}
+\def\@makeschapterhead#1{%
+  \vspace*{10\p@}%
+  {\parindent \z@ \raggedright \normalfont
+    \interlinepenalty\@M
+    \Huge \bfseries #1\par\nobreak
+    \vskip 40\p@
+  }}
+\makeatother
+
+% --- Maths -------------------------------------------------------
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% Number a display equation only if it is actually referenced.
+\mathtoolsset{showonlyrefs=true}
+
+% --- Figures, tables, algorithms ---------------------------------
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[ruled,vlined]{algorithm2e}
+
+% --- Bibliography -------------------------------------------------
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{plainnat}
+
+% --- Hyperlinks (load late) --------------------------------------
+\usepackage[hidelinks]{hyperref}
+
+% --- Theorem environments ----------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{remark}[theorem]{Remark}
+
+% No QED square at the end of proofs.
+\renewcommand{\qedsymbol}{}
+
+% --- Macros ------------------------------------------------------
+% Probability / statistics
+\newcommand{\E}{\mathbb{E}}                 % expectation
+\newcommand{\Var}{\operatorname{Var}}       % variance
+\newcommand{\Cov}{\operatorname{Cov}}       % covariance
+\newcommand{\Tr}{\operatorname{tr}}         % trace
+\newcommand{\Normal}{\mathcal{N}}           % normal distribution
+\newcommand{\Uniform}{\mathrm{Uniform}}
+\newcommand{\given}{\,|\,}                  % conditioning bar
+\newcommand{\dd}{\,\mathrm{d}}              % differential
+
+% Estimator / model objects
+\newcommand{\bt}{\bm{\theta}}               % parameter vector
+\newcommand{\bx}{\mathbf{x}}                % data vector
+\newcommand{\by}{\mathbf{y}}                % observation vector
+\newcommand{\bg}{\bm{\gamma}}               % network weights
+\newcommand{\est}[1]{\hat{#1}}              % estimator hat
+\newcommand{\net}{\hat{\bm{\theta}}_{\bm{\gamma}}}  % neural network
+\newcommand{\loss}{\mathcal{L}}             % population loss
+\newcommand{\param}{\Theta}                 % parameter space
+
+% Sets
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\dataspace}{\mathcal{Y}}
+
+% Abbreviations
+\newcommand{\NBE}{NBE}
+\newcommand{\MC}{\mathrm{MC}}
+\newcommand{\RB}{\mathrm{RB}}

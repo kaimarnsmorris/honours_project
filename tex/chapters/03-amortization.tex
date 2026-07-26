@@ -1,0 +1,723 @@
+% ================================================================
+%  CHAPTER 3 -- AMORTISATION & NEURAL BAYES ESTIMATORS
+%  Status: DRAFT v1 (2026-05-18). Adapted from essay Sec 3-5.
+% ================================================================
+\chapter{Amortisation and Neural Bayes Estimators}
+\label{ch:amortization}
+
+MCMC solves each inference problem in isolation:
+for every new dataset the chain must be run afresh, at a cost that is
+incurred each time. This chapter
+develops an alternative. Rather than approximating the full posterior
+for one dataset at a time, we target specific \emph{posterior
+functionals} (summaries of the form $\E[g(\bm{\theta}) \given \mathbf{y}]$) and we learn them with a single
+estimator map $\hat{\bm{\theta}}$, trained once, that returns the desired summary for any
+dataset drawn from the model. The idea is to exploit the \emph{universal
+function-approximation} capability of neural networks to approximate
+the optimal mapping from data to these summaries.
+
+The functionals we target are not arbitrary. Each is the solution of a
+decision problem: for a suitable loss function, the posterior summary
+$\E[g(\bm{\theta}) \given \mathbf{y}]$ is the \emph{Bayes estimator},
+the estimator that is optimal with respect to the posterior
+distribution. Section~\ref{sec:bayes-estimator} develops this decision
+theory and shows how the choice of loss selects which posterior
+summary the Bayes estimator returns: the posterior mean under
+squared-error loss, posterior quantiles under quantile loss.
+
+The Bayes estimator is a fixed function of the data, but evaluating it
+directly is generally as difficult as the original inference problem.
+Section~\ref{sec:nbe} introduces \emph{amortised inference} (which
+approximates this function once, up front, and reuses the
+approximation across all subsequent datasets, so that the fitting cost
+is amortised over every later inference) and makes it concrete: the
+approximating function is a neural network which we call a \emph{neural
+Bayes estimator}
+%
+\begin{equation}
+  \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y})
+\approx \E[g(\bm{\theta}) \given \mathbf{y}],
+\end{equation}
+%
+trained on simulated data to minimise the empirical Bayes risk. We discuss how the network architecture should match
+the structure of the data (DeepSets for exchangeable observations,
+recurrent networks for sequential data, feed-forward networks
+otherwise) and close Section~\ref{sec:normal-example} with a
+worked example estimating the parameters of a normal model, where the
+amortised estimator is checked against an MCMC reference.
+
+
+% ----------------------------------------------------------------
+\section{The Bayes estimator framework}
+\label{sec:bayes-estimator}
+
+Point estimation can be formalised through decision
+theory~\citep{berger1985decision}. A point
+estimator is a function $\hat{\bm{\theta}} : \mathcal{Y} \to \Theta$
+mapping observed data $\mathbf{y}$ to an estimate
+$\hat{\bm{\theta}}(\mathbf{y})$. A \emph{loss function}
+$L(\bm{\theta}, \hat{\bm{\theta}})$ is a function that quantifies
+the cost of reporting
+$\hat{\bm{\theta}}$ when the true parameter is $\bm{\theta}$.
+
+The quality of an estimator at a fixed parameter value is its expected
+loss over data realisations, the \emph{frequentist risk}
+%
+\begin{equation}
+  R(\bm{\theta}, \hat{\bm{\theta}})
+  = \E_{\mathbf{y} \given \bm{\theta}}
+    \big[L(\bm{\theta}, \hat{\bm{\theta}}(\mathbf{y}))\big].
+  \label{eq:frequentist-risk}
+\end{equation}
+%
+Averaging the frequentist risk over the prior gives the \emph{Bayes
+risk},
+%
+\begin{equation}
+  r(\hat{\bm{\theta}})
+  = \E_{\bm{\theta} \sim p(\bm{\theta})}
+    \big[R(\bm{\theta}, \hat{\bm{\theta}})\big]
+  = \E_{\bm{\theta}, \mathbf{y}}
+    \big[L(\bm{\theta}, \hat{\bm{\theta}}(\mathbf{y}))\big],
+  \label{eq:bayes-risk}
+\end{equation}
+%
+the second equality following because $p(\bm{\theta})\,
+p(\mathbf{y} \given \bm{\theta})$ is the joint density of
+$(\bm{\theta}, \mathbf{y})$.
+
+\begin{definition}[Bayes estimator]
+\label{def:bayes-estimator}
+The \emph{Bayes estimator} is the estimator minimising the Bayes risk,
+%
+\begin{equation}
+  \hat{\bm{\theta}}^{*} (\cdot)
+  = \arg\min_{\hat{\bm{\theta}}}\;
+    r(\hat{\bm{\theta}} (\cdot)).
+  \label{eq:bayes-estimator}
+\end{equation}
+\end{definition}
+
+By the law of iterated expectation the Bayes
+risk~\eqref{eq:bayes-risk} can be rewritten as
+$r(\hat{\bm{\theta}}) = \E_{\mathbf{y}}\big[\E_{\bm{\theta} \given
+\mathbf{y}}[L(\bm{\theta}, \hat{\bm{\theta}}(\mathbf{y}))]\big]$.
+Because the estimator is free to choose $\hat{\bm{\theta}}(\mathbf{y})$
+separately for each $\mathbf{y}$, the Bayes risk is minimised by
+minimising the inner \emph{posterior expected loss}
+$\E_{\bm{\theta} \given \mathbf{y}}[L(\bm{\theta},
+\hat{\bm{\theta}})]$ pointwise. The Bayes estimator~\eqref{eq:bayes-estimator} is therefore
+%
+\begin{equation}
+  \hat{\bm{\theta}}^{*}(\mathbf{y})
+  = \arg\min_{\hat{\bm{\theta}}}\;
+    \E_{\bm{\theta} \given \mathbf{y}}
+    \big[L(\bm{\theta}, \hat{\bm{\theta}})\big].
+  \label{eq:pointwise}
+\end{equation}
+
+\subsection{Loss functions and posterior summaries}
+\label{sec:loss-summaries}
+
+A crucial feature of the Bayes estimator is that by choosing different loss functions, 
+it can be made to target different summaries of the posterior.
+The two results below show the loss functions we need to target the posterior mean and posterior quantiles.  
+
+\begin{proposition}[Squared-error loss]
+\label{prop:squared-error}
+Under the squared-error loss
+$L(\bm{\theta}, \hat{\bm{\theta}}) =
+\|\bm{\theta} - \hat{\bm{\theta}}\|^2$, the Bayes estimator is the
+posterior mean $\hat{\bm{\theta}}^{*}(\mathbf{y}) =
+\E[\bm{\theta} \given \mathbf{y}]$.
+\end{proposition}
+
+\begin{proof}
+Fix the data $\mathbf{y}$, so that $\hat{\bm{\theta}}$ is the constant
+vector to be chosen, and expand the squared norm inside the posterior
+expectation:
+%
+\begin{align}
+  \E_{\bm{\theta} \given \mathbf{y}}
+  \big[\|\bm{\theta} - \hat{\bm{\theta}}\|^2\big]
+  &= \E_{\bm{\theta} \given \mathbf{y}}
+     \big[(\bm{\theta} - \hat{\bm{\theta}})^{\!\top}
+     (\bm{\theta} - \hat{\bm{\theta}})\big]
+   \\[2pt]
+  &= \E_{\bm{\theta} \given \mathbf{y}}
+     \big[\bm{\theta}^{\!\top}\bm{\theta}
+     - 2\,\hat{\bm{\theta}}^{\!\top}\bm{\theta}
+     + \hat{\bm{\theta}}^{\!\top}\hat{\bm{\theta}}\big]
+   \\[2pt]
+  &= \E[\bm{\theta}^{\!\top}\bm{\theta} \given \mathbf{y}]
+     - 2\,\hat{\bm{\theta}}^{\!\top}\,
+       \E[\bm{\theta} \given \mathbf{y}]
+     + \hat{\bm{\theta}}^{\!\top}\hat{\bm{\theta}},
+\end{align}
+%
+where the last line uses linearity of expectation. Differentiating with respect to $\hat{\bm{\theta}}$ using the gradient identities
+$\nabla_{\hat{\bm{\theta}}}(\hat{\bm{\theta}}^{\!\top}\mathbf{a})
+= \mathbf{a}$ and
+$\nabla_{\hat{\bm{\theta}}}
+(\hat{\bm{\theta}}^{\!\top}\hat{\bm{\theta}}) = 2\,\hat{\bm{\theta}}$ gives
+%
+\begin{equation}
+  \nabla_{\hat{\bm{\theta}}}\;
+  \E_{\bm{\theta} \given \mathbf{y}}
+  \big[\|\bm{\theta} - \hat{\bm{\theta}}\|^2\big]
+  = -2\,\E[\bm{\theta} \given \mathbf{y}]
+  + 2\,\hat{\bm{\theta}}.
+\end{equation}
+%
+The objective is the sum of a constant, a term linear in
+$\hat{\bm{\theta}}$, and the convex quadratic
+$\hat{\bm{\theta}}^{\!\top}\hat{\bm{\theta}}$; it is therefore convex
+in $\hat{\bm{\theta}}$, and its unique minimiser is the stationary
+point. Setting the gradient to zero,
+%
+\begin{equation}
+  -2\,\E[\bm{\theta} \given \mathbf{y}]
+  + 2\,\hat{\bm{\theta}} = \mathbf{0}
+  \qquad\Longrightarrow\qquad
+  \hat{\bm{\theta}}^{*}(\mathbf{y})
+  = \E[\bm{\theta} \given \mathbf{y}].
+\end{equation}
+\end{proof}
+
+\begin{proposition}[Quantile loss]
+\label{prop:quantile}
+For a scalar parameter $\theta$, under the $\alpha$-quantile loss
+$L_\alpha(\theta, \hat{\theta}) = (\alpha -
+\mathbf{1}_{\{\theta < \hat{\theta}\}})(\theta - \hat{\theta})$, the
+Bayes estimator is the $\alpha$-quantile of the posterior.
+\end{proposition}
+
+\begin{proof}
+The $\alpha$-quantile loss equals
+$(1-\alpha)(\hat{\theta} - \theta)$ when $\theta < \hat{\theta}$ and
+$\alpha(\theta - \hat{\theta})$ when $\theta \ge \hat{\theta}$, so the
+posterior expected loss splits at $\theta = \hat{\theta}$ as
+%
+\begin{equation}
+  R(\hat{\theta})
+  = (1-\alpha)\!\int_{-\infty}^{\hat{\theta}}
+    (\hat{\theta} - \theta)\,p(\theta \given \mathbf{y}) \dd\theta
+  + \alpha\!\int_{\hat{\theta}}^{\infty}
+    (\theta - \hat{\theta})\,p(\theta \given \mathbf{y}) \dd\theta.
+\end{equation}
+%
+Here $\hat{\theta}$ appears both in the limits of integration and in
+the integrands, so each term is differentiated by the Leibniz
+integral rule. In the first integral the boundary term carries the
+integrand evaluated at $\theta = \hat{\theta}$, namely
+$(\hat{\theta} - \hat{\theta}) = 0$, so only the integrand derivative
+survives:
+%
+\begin{align}
+  \frac{\dd}{\dd\hat{\theta}}
+  \int_{-\infty}^{\hat{\theta}}
+  (\hat{\theta} - \theta)\,p(\theta \given \mathbf{y}) \dd\theta
+  &= \underbrace{(\hat{\theta} - \hat{\theta})\,
+     p(\hat{\theta} \given \mathbf{y})}_{=\;0}
+   + \int_{-\infty}^{\hat{\theta}}
+     \frac{\partial}{\partial\hat{\theta}}
+     \big[(\hat{\theta} - \theta)\,
+     p(\theta \given \mathbf{y})\big] \dd\theta
+   \notag\\[2pt]
+  &= \int_{-\infty}^{\hat{\theta}}
+     p(\theta \given \mathbf{y}) \dd\theta \\[2pt]
+   &= F_{\theta \given \mathbf{y}}(\hat{\theta}),
+\end{align}
+%
+where $F_{\theta \given \mathbf{y}}$ is the posterior cumulative
+distribution function. 
+In the second integral the boundary term vanishes for the same
+reason, and differentiating the lower limit contributes a minus sign:
+%
+\begin{align}
+  \frac{\dd}{\dd\hat{\theta}}
+  \int_{\hat{\theta}}^{\infty}
+  (\theta - \hat{\theta})\,p(\theta \given \mathbf{y}) \dd\theta
+  &= \underbrace{-(\hat{\theta} - \hat{\theta})\,
+     p(\hat{\theta} \given \mathbf{y})}_{=\;0}
+   - \int_{\hat{\theta}}^{\infty}
+     p(\theta \given \mathbf{y}) \dd\theta
+   \notag\\[2pt]
+  &= -\big(1 - F_{\theta \given \mathbf{y}}(\hat{\theta})\big).
+\end{align}
+%
+Combining the two and simplifying,
+%
+\begin{align}
+  R'(\hat{\theta})
+  &= (1-\alpha)\,F_{\theta \given \mathbf{y}}(\hat{\theta})
+   - \alpha\big(1 - F_{\theta \given \mathbf{y}}(\hat{\theta})\big)
+   \notag\\[2pt]
+  &= F_{\theta \given \mathbf{y}}(\hat{\theta}) - \alpha.
+\end{align}
+%
+The posterior expected loss $R$ is convex in $\hat{\theta}$, so its
+minimiser is its stationary point. Setting $R'(\hat{\theta}) = 0$
+gives
+%
+\begin{equation}
+  F_{\theta \given \mathbf{y}}(\hat{\theta}^{*}) = \alpha,
+\end{equation}
+%
+which is precisely the definition of the $\alpha$-quantile of the
+posterior.
+\end{proof}
+
+The case $\alpha = \tfrac{1}{2}$ recovers the posterior median under
+absolute-error loss; symmetric pairs such as $\alpha \in
+\{0.025, 0.975\}$ give the endpoints of a central credible interval.
+This thesis works throughout with squared-error loss and hence with
+the posterior mean.
+
+
+% ----------------------------------------------------------------
+\section{Neural Bayes estimators}
+\label{sec:nbe}
+
+The Bayes estimator~\eqref{eq:pointwise} is a fixed function of the data: it returns the optimal estimate for every possible dataset, not just the one in hand. This is what makes it the right object to approximate: a single approximation, reused across datasets, which amortises the cost of fitting over every later inference, where MCMC must instead be re-run from scratch each time (Section~\ref{sec:mcmc-cost}). Approximating it requires first defining a \emph{parametric family} of estimators in place of the intractable search over all functions, then fitting that family to a Monte Carlo estimate of an otherwise-intractable Bayes risk, and finally using a neural network as a flexible surrogate for this family. The three subsections below develop these in turn.
+
+\paragraph{A parametric family of estimators.}
+Definition~\ref{def:bayes-estimator} poses the Bayes estimator as the
+solution of a \emph{variational} problem: the minimisation
+\eqref{eq:bayes-estimator} ranges over all functions
+$\hat{\bm{\theta}} : \mathcal{Y} \to \Theta$, an
+infinite-dimensional search that is no more tractable than the
+posterior it encodes. We make it tractable by restricting the search
+to a family of functions
+$\{\hat{\bm{\theta}}_{\bm{\gamma}} : \bm{\gamma} \in \Gamma\}$ indexed
+by a finite-dimensional parameter $\bm{\gamma}$. The Bayes risk is then
+a function of $\bm{\gamma}$ alone,
+%
+\begin{equation}
+  r(\bm{\gamma})
+  = \E_{\bm{\theta}, \mathbf{y}}
+    \big[L(\bm{\theta},
+    \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))\big],
+  \label{eq:population-loss}
+\end{equation}
+%
+and the variational problem of Definition~\ref{def:bayes-estimator}
+becomes an ordinary parametric optimisation,
+%
+\begin{equation}
+  \bm{\gamma}^{*}
+  = \arg\min_{\bm{\gamma} \in \Gamma}\; r(\bm{\gamma}),
+  \label{eq:gamma-star}
+\end{equation}
+%
+over the finite-dimensional space $\Gamma$. Restricting to a finite-dimensional search means that the family may not contain the Bayes estimator exactly; the best it can do
+is the closest member, and the approximation is only as good as the
+family allows.
+
+\paragraph{A Monte Carlo objective.}
+The objective~\eqref{eq:population-loss} is still an expectation over
+parameter--data pairs, taken with respect to the joint distribution
+$p(\bm{\theta})\,p(\mathbf{y} \given \bm{\theta})$, and is no more
+available in closed form than the posterior. However, it can be
+approximated. The joint distribution is something we can sample
+from, even when the likelihood cannot be evaluated: draw a parameter
+from the prior, then simulate data from the model given that
+parameter. Drawing $K$ such pairs gives the Monte Carlo approximation:
+%
+\begin{equation}
+  r(\bm{\gamma})
+  \approx \frac{1}{K}\sum_{k=1}^{K}
+  L\big(\bm{\theta}^{(k)},
+  \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}^{(k)})\big),
+  \label{eq:empirical-bayes-risk}
+\end{equation}
+%
+the \emph{empirical Bayes risk}, which replaces the intractable
+expectation~\eqref{eq:population-loss} by an average we can actually
+compute. Minimising~\eqref{eq:empirical-bayes-risk} over $\bm{\gamma}$
+is a tractable surrogate for the parametric
+problem~\eqref{eq:gamma-star}, and hence for the original problem. The construction is \emph{likelihood-free}: it asks only that
+we can simulate from $p(\mathbf{y} \given \bm{\theta})$, never that we
+evaluate the likelihood analytically.
+
+\paragraph{A neural network surrogate.}
+For the surrogate to be
+worthwhile the family $\{\hat{\bm{\theta}}_{\bm{\gamma}}\}$ must be flexible enough to contain a close
+approximation to the Bayes estimator, which may be a highly nonlinear
+function of the data. Neural networks are the natural choice: by their
+universal function-approximation property they can approximate the
+estimator map to arbitrary accuracy given sufficient capacity, while
+remaining a finite-dimensional family that
+\eqref{eq:empirical-bayes-risk} can be optimised over by gradient
+methods. Taking $\hat{\bm{\theta}}_{\bm{\gamma}}$ to be a neural
+network with weights $\bm{\gamma}$, trained by minimising the empirical
+Bayes risk, yields a neural Bayes
+estimator~\citep{sainsburydale2024nbe}.
+
+The loss function chosen in~\eqref{eq:empirical-bayes-risk} determines
+which posterior summary the trained network approximates, exactly as in
+Section~\ref{sec:loss-summaries}. In summary, the procedure followed to obtain the trained network and apply it to an unseen dataset is as follows:
+
+\begin{enumerate}
+  \item \textbf{Simulate.} Draw parameters
+  $\bm{\theta}^{(k)} \sim p(\bm{\theta})$ from the prior, then
+  simulate $n$ data samples
+  $\mathbf{y}^{(k)} \sim p(\mathbf{y} \given \bm{\theta}^{(k)})$,
+  with $\mathbf{y}^{(k)} \in \reals^{n}$, for $k = 1, \dots, K$.
+  \item \textbf{Train.} Choose the weights $\hat{\bm{\gamma}}$ to
+  minimise the empirical Bayes risk~\eqref{eq:empirical-bayes-risk}.
+  \item \textbf{Apply.} For a new dataset $\mathbf{y}$, report
+  $\hat{\bm{\theta}}_{\hat{\bm{\gamma}}}(\mathbf{y})$.
+\end{enumerate}
+
+\subsection{Training by stochastic gradient descent}
+\label{sec:training-as-mc}
+
+Training minimises the empirical Bayes
+risk~\eqref{eq:empirical-bayes-risk} by \emph{stochastic gradient
+descent}. Gradient descent is an iterative method: starting from some
+initial weights, it repeatedly adjusts $\bm{\gamma}$ by a small step in
+the direction of steepest descent (the negative gradient
+$-\nabla_{\bm{\gamma}} r(\bm{\gamma})$) so that the risk decreases
+from one step to the next, and continues until the risk levels off.
+Computing the exact gradient would mean summing over all $K$ simulated
+pairs at every step, which is expensive. The stochastic variant
+avoids this: at each step it draws a small random \emph{minibatch} of
+$B$ pairs and uses the gradient of the loss on that minibatch in place
+of the full gradient. Written out, a minibatch
+$\{(\bm{\theta}^{(i)}, \mathbf{y}^{(i)})\}_{i=1}^{B}$ of pairs simulated
+from the model gives the average of the per-pair gradients,
+%
+\begin{equation}
+  \hat{g}_{B}(\bm{\gamma})
+  = \frac{1}{B}\sum_{i=1}^{B}
+    \nabla_{\bm{\gamma}}\,
+    L\big(\bm{\theta}^{(i)},
+    \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}^{(i)})\big).
+  \label{eq:minibatch-gradient}
+\end{equation}
+%
+Each pair is drawn from the joint distribution
+$p(\bm{\theta})\,p(\mathbf{y} \given \bm{\theta})$, so interchanging
+differentiation and expectation (assuming usual regularity conditions) shows this average to be unbiased for
+the gradient of the population risk~\eqref{eq:population-loss},
+%
+\begin{equation}
+  \E\big[\hat{g}_{B}(\bm{\gamma})\big]
+  = \nabla_{\bm{\gamma}}\,
+    \E_{\bm{\theta}, \mathbf{y}}
+    \big[L(\bm{\theta}, \hat{\bm{\theta}}_{\bm{\gamma}}(\mathbf{y}))\big]
+  = \nabla_{\bm{\gamma}}\, r(\bm{\gamma}).
+  \label{eq:minibatch-unbiased}
+\end{equation}
+%
+The minibatch gradient is therefore an unbiased Monte Carlo estimate of
+the population gradient $\nabla_{\bm{\gamma}} r(\bm{\gamma})$, the same
+quantity full-batch descent approximates: each step follows the true
+gradient on average, cheaply, but with sampling noise.
+
+Like any Monte Carlo estimator, this training gradient has a variance.
+The variance is not a property of the inference problem but of how the
+loss is sampled, and it can be reduced by the standard Monte Carlo
+variance-reduction techniques, applied here to the training, as
+distinct from their application to the inference itself, which we
+investigate in Chapter~\ref{ch:rao-blackwell} and
+Chapter~\ref{ch:importance-sampling}.
+
+% ----------------------------------------------------------------
+\section{Neural architectures}
+\label{sec:architectures}
+
+The construction of Section~\ref{sec:nbe} leaves the family
+$\{\hat{\bm{\theta}}_{\bm{\gamma}}\}$ unspecified beyond the
+requirement that it be a neural network. In practice there are actually many different neural network architectures, with different desirable properties useful for solving varying statistical problems. A Bayes estimator inherits the symmetries of the model that
+generates the data: if the data are exchangeable the estimator is
+invariant to their ordering, if they are a time series the estimator
+depends on their order, and so on. Building these properties into the
+architecture, rather than hoping the network learns them, reduces the
+function class to one that already contains estimators of the right
+form; this makes training more efficient and stable. This section
+describes three architectures, each matched to a different data
+structure: DeepSets for independent and identically distributed (i.i.d.)
+observations, recurrent networks for sequential data, and feed-forward networks for data of fixed
+dimension with no such structure to exploit.
+
+\subsection{The DeepSets architecture}
+\label{sec:deepsets}
+
+Many inference problems involve \emph{replicated} data: a sample
+$\mathbf{y} = (y_1, \dots, y_n)$ of independent observations from a
+common model. A Bayes estimator for such data is invariant to the
+ordering of the observations, and the network should be too. The
+DeepSets architecture~\citep{zaheer2017deepsets} enforces this
+permutation invariance by construction. Each observation is mapped
+through a shared network $\psi$ to a high-dimensional embedding; the embeddings are
+combined by a permutation-invariant operation, typically summation;
+and a second network $\phi$ maps the aggregate to the estimate,
+%
+\begin{equation}
+  \hat{\bm{\theta}}(\mathbf{y})
+  = \phi\!\left(\sum_{i=1}^{n} \psi(y_i)\right).
+  \label{eq:deepsets}
+\end{equation}
+%
+The sum $\sum_i \psi(y_i)$ plays the role of a learned summary
+statistic. For exponential-family models the sufficient statistic has
+exactly this additive form, and the architecture can be read as
+learning a sufficient statistic directly from simulated data, without
+the likelihood being known. Figure~\ref{fig:deepsets} summarises the
+data flow in this architecture.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    >=Stealth,
+    obs/.style   = {circle, draw=blue!60, fill=blue!12,
+                     minimum size=8mm, font=\small},
+    embed/.style = {circle, draw=green!55!black, fill=green!14,
+                     minimum size=8mm, font=\small},
+    net/.style   = {rectangle, draw=black!70, fill=white,
+                     minimum size=7mm, font=\small},
+    agg/.style   = {circle, draw=orange!85!black, fill=orange!22,
+                     minimum size=9mm, font=\small},
+    estim/.style = {circle, draw=red!55, fill=red!12,
+                     minimum size=8mm, font=\small},
+    lbl/.style   = {font=\footnotesize, text=black!65, align=center},
+    every node/.style = {inner sep=2pt},
+  ]
+  % input observations
+  \node[obs] (y1) at (0,3)    {$y_1$};
+  \node[obs] (y2) at (0,2)    {$y_2$};
+  \node[obs] (y3) at (0,1)    {$y_3$};
+  \node      (yd) at (0,0.25) {$\vdots$};
+  \node[obs] (yn) at (0,-0.6) {$y_n$};
+  % pointwise network psi
+  \node[net] (p1) at (2,3)    {$\psi$};
+  \node[net] (p2) at (2,2)    {$\psi$};
+  \node[net] (p3) at (2,1)    {$\psi$};
+  \node[net] (pn) at (2,-0.6) {$\psi$};
+  % embeddings
+  \node[embed] (s1) at (4,3)    {$s_1$};
+  \node[embed] (s2) at (4,2)    {$s_2$};
+  \node[embed] (s3) at (4,1)    {$s_3$};
+  \node[embed] (sn) at (4,-0.6) {$s_n$};
+  % aggregate, summary, final map, estimate
+  \node[agg]   (sum) at (6.3,1.2)  {$\textstyle\sum$};
+  \node[embed] (S)   at (8.1,1.2)  {$S$};
+  \node[net]   (phi) at (9.9,1.2)  {$\phi$};
+  \node[estim] (th)  at (11.7,1.2) {$\hat{\bm{\theta}}$};
+  % edges
+  \foreach \i in {1,2,3,n}{
+    \draw[->] (y\i) -- (p\i);
+    \draw[->] (p\i) -- (s\i);
+    \draw[->] (s\i) -- (sum);
+  }
+  \draw[->] (sum) -- (S);
+  \draw[->] (S)   -- (phi);
+  \draw[->] (phi) -- (th);
+  % column labels
+  \node[lbl] at (0,-1.6)    {Input};
+  \node[lbl] at (2,-1.6)    {Pointwise\\network $\psi$};
+  \node[lbl] at (4,-1.6)    {Summary\\embeddings};
+  \node[lbl] at (6.3,-0.45) {Aggregate};
+  \node[lbl] at (9.9,-0.45) {Final map $\phi$};
+  \node[lbl] at (11.7,-0.45){Estimate};
+  \end{tikzpicture}
+  \caption{The DeepSets architecture for permutation-invariant
+  estimation. Each observation $y_i$ is mapped by the shared network
+  $\psi$ to an embedding $s_i$; the embeddings are summed into the
+  permutation-invariant aggregate $S = \sum_i \psi(y_i)$, which the
+  second network $\phi$ maps to the estimate
+  $\hat{\bm{\theta}}(\mathbf{y})$.}
+  \label{fig:deepsets}
+\end{figure}
+
+
+
+
+
+
+
+
+\subsection{Recurrent architectures for sequential data}
+\label{sec:recurrent-arch}
+
+DeepSets is appropriate only when the observations are exchangeable.
+For \emph{sequential} data such as a time series $\mathbf{y} = (y_1, \dots,
+y_n)$ in which the ordering carries information, permutation
+invariance would discard precisely the dependence the parameters
+govern. The autoregressive model of
+Chapter~\ref{ch:importance-sampling} is the case in point: the AR(1)
+coefficient is identified by the correlation between successive
+observations, which a permutation-invariant summary cannot see.
+
+The natural alternative is a \emph{recurrent} network, which processes
+the observations in order while maintaining a hidden state
+$\mathbf{h}_t$ that summarises the sequence up to step $t$,
+%
+\begin{equation}
+  \mathbf{h}_t = \psi(\mathbf{h}_{t-1}, y_t),
+  \qquad
+  \hat{\bm{\theta}}(\mathbf{y}) = \phi(\mathbf{h}_n).
+\end{equation}
+%
+Here $\psi$ is a recurrent cell shared across steps and $\phi$ maps
+the terminal hidden state to the estimate; Figure~\ref{fig:recurrent}
+shows the network unrolled over the sequence. The hidden state plays
+the role that the sum $\sum_i \psi(y_i)$ plays in DeepSets, a learned
+summary of the data, but one accumulated in sequence and so sensitive
+to temporal order. The experiments of
+Chapter~\ref{ch:importance-sampling} take $\psi$ to be a gated
+recurrent unit~\citep{cho2014gru}, a widely adopted recurrent block whose gating mitigates the
+vanishing gradients over long sequences.
+
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    >=Stealth,
+    obs/.style   = {circle, draw=blue!60, fill=blue!12,
+                     minimum size=8mm, font=\small},
+    net/.style   = {rectangle, draw=black!70, fill=white,
+                     minimum size=9mm, font=\small},
+    estim/.style = {circle, draw=red!55, fill=red!12,
+                     minimum size=8mm, font=\small},
+    hid/.style   = {font=\footnotesize, text=green!45!black},
+    lbl/.style   = {font=\footnotesize, text=black!65, align=center},
+    every node/.style = {inner sep=2pt},
+  ]
+  % recurrent cells, unrolled over the sequence
+  \node[net] (c1) at (0,1)    {$\psi$};
+  \node[net] (c2) at (2.4,1)  {$\psi$};
+  \node[net] (c3) at (4.8,1)  {$\psi$};
+  \node      (cd) at (6.6,1)  {$\cdots$};
+  \node[net] (cn) at (8.4,1)  {$\psi$};
+  % inputs
+  \node[obs] (y1) at (0,-0.7)   {$y_1$};
+  \node[obs] (y2) at (2.4,-0.7) {$y_2$};
+  \node[obs] (y3) at (4.8,-0.7) {$y_3$};
+  \node[obs] (yn) at (8.4,-0.7) {$y_n$};
+  % final map and estimate
+  \node[net]   (phi) at (10.6,1) {$\phi$};
+  \node[estim] (th)  at (12.4,1) {$\hat{\bm{\theta}}$};
+  \coordinate (h0) at (-1.7,1);
+  % input edges
+  \foreach \i in {1,2,3,n}{\draw[->] (y\i) -- (c\i);}
+  % recurrent (hidden-state) edges
+  \draw[->] (h0) -- node[above,hid]{$\mathbf{h}_0$} (c1);
+  \draw[->] (c1) -- node[above,hid]{$\mathbf{h}_1$} (c2);
+  \draw[->] (c2) -- node[above,hid]{$\mathbf{h}_2$} (c3);
+  \draw[->] (c3) -- node[above,hid]{$\mathbf{h}_3$} (cd);
+  \draw[->] (cd) -- node[above,hid]{$\mathbf{h}_{n-1}$} (cn);
+  \draw[->] (cn) -- node[above,hid]{$\mathbf{h}_n$} (phi);
+  \draw[->] (phi) -- (th);
+  % labels
+  \node[lbl] at (0,-1.75)   {Input};
+  \node[lbl] at (4.8,2.05)  {Recurrent cell $\psi$};
+  \node[lbl] at (10.6,0.1)  {Final map $\phi$};
+  \node[lbl] at (12.4,0.1)  {Estimate};
+  \end{tikzpicture}
+  \caption{A recurrent architecture for sequential data, unrolled over
+  the sequence. At step $t$ the shared cell $\psi$ combines the
+  observation $y_t$ with the previous hidden state $\mathbf{h}_{t-1}$
+  to produce $\mathbf{h}_t$; the final map $\phi$ turns the terminal
+  hidden state $\mathbf{h}_n$ into the estimate
+  $\hat{\bm{\theta}}(\mathbf{y})$.}
+  \label{fig:recurrent}
+\end{figure}
+
+
+
+
+\subsection{Feed-forward architectures for fixed-dimension data}
+\label{sec:mlp-arch}
+
+When the data carry neither exchangeable nor sequential structure to
+exploit (as in linear regression with a fixed design matrix
+$X$, where each observation is tied to its own row of
+covariates and the observations are neither interchangeable nor
+ordered in time), there is no symmetry for the architecture to encode.
+The natural choice is then a \emph{feed-forward} network, which takes
+the data as a fixed-length vector and maps it to the estimate through
+a sequence of affine transformations and nonlinearities,
+%
+\begin{equation}
+  \hat{\bm{\theta}}(\mathbf{y}) = \phi(\mathbf{y}).
+\end{equation}
+%
+Unlike DeepSets and the recurrent network, the feed-forward
+architecture builds in no invariance and accommodates no change in the
+size of the data: the input dimension is fixed by the network, as
+suits a problem in which the number of observations and their meaning
+are fixed in advance. What it gives up in structure it makes up in
+generality, serving as the default when no exploitable structure is
+present.
+
+
+
+
+
+
+% ----------------------------------------------------------------
+\section{Example 1: estimating normal parameters}
+\label{sec:normal-example}
+
+As a concrete demonstration, we return to Example~1, the normal model:
+$n$ independent observations
+$y_i \sim \Normal(\mu, \sigma^2)$ with priors $\mu \sim \Normal(0, 1)$
+and $\sigma \sim \Uniform(0, 5)$ and estimand
+$\bm{\theta} = (\mu, \sigma)$. The model is a controlled test case
+rather than a genuine application: its posterior is available in closed
+form up to a normalising constant
+(the log-posterior~\eqref{eq:normal-logpost}), so an accurate reference
+can be computed for every test dataset and the amortised estimator
+checked against it.
+
+That reference is the Metropolis--Hastings sampler of
+Section~\ref{sec:cs-normal}. Run separately on each of $256$ test
+datasets, its post-burn-in average estimates the posterior mean
+$\E[\bm{\theta} \given \mathbf{y}]$ --- the same summary the
+squared-error-trained network targets
+(Proposition~\ref{prop:squared-error}), so the two methods are compared
+on equal terms.
+
+A neural Bayes estimator with the DeepSets
+architecture~\eqref{eq:deepsets} was trained under squared-error loss
+on simulated data and compared against that reference.
+Figure~\ref{fig:normal-model} compares the two, and
+Table~\ref{tab:normal-model} summarises their accuracy and cost. They
+agree closely in accuracy: the mean squared error of the neural
+estimator is within a few percent of that of Metropolis--Hastings for
+$\mu$ and somewhat larger for $\sigma$. They differ sharply in cost.
+Metropolis--Hastings must be run afresh for each dataset, whereas the
+trained network returns an estimate in a single forward pass --- here
+roughly $2{,}800$ times faster per dataset.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{normal_model_estimates}
+  \caption{Estimated against true parameter values for the normal
+  model, across $256$ test datasets, for Metropolis--Hastings and
+  the neural Bayes estimator. Both methods track the true parameters
+  closely; the dashed line marks the hypothetical perfect estimation.}
+  \label{fig:normal-model}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Normal model: accuracy (mean squared error over the $256$
+  test datasets) and per-dataset cost of the Metropolis--Hastings
+  reference and the neural Bayes estimator. The two agree closely in
+  accuracy, but the amortised network is faster per dataset by some
+  three orders of magnitude (single-threaded CPU timing; $5{,}000$-step
+  chains for Metropolis--Hastings).}
+  \label{tab:normal-model}
+  \begin{tabular}{l rr l}
+    \toprule
+    & $\mu$ (MSE) & $\sigma$ (MSE) & Cost per dataset \\
+    \midrule
+    Metropolis--Hastings   & $0.095$ & $0.053$ & $\approx 26$\,ms (re-run per dataset) \\
+    Neural Bayes estimator & $0.097$ & $0.075$ & $\approx 9\,\mu$s (one forward pass) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
